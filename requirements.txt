@@ -1,0 +1,13 @@
+pandas
+numpy
+dask[dataframe]
+pyarrow
+scikit-learn
+matplotlib
+jupyter
+tqdm
+xgboost
+lightgbm
+optuna
+shap
+imbalanced-learn

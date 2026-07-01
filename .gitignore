@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# virtual environments
+.venv/
+env/
+.env
+
+# raw and processed data
+data/raw/
+data/interim/
+data/processed/
+data/features/
+
+# model files
+models/
+*.pkl
+*.joblib
+
+# output logs
+*.log
+outputs/*.log
+
+# temporary files
+*.tmp
+
+# editor settings
+.idea/

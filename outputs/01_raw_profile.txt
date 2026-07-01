@@ -1,0 +1,111 @@
+开始读取少量样本，不会读取完整的 5.9GB 文件。
+
+======================================================================
+正在检查：train.csv
+======================================================================
+样本行数：100,000
+字段数量：24
+
+字段名称：
+['id', 'click', 'hour', 'C1', 'banner_pos', 'site_id', 'site_domain', 'site_category', 'app_id', 'app_domain', 'app_category', 'device_id', 'device_ip', 'device_model', 'device_type', 'device_conn_type', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21']
+
+数据类型：
+id                  string
+click                int64
+hour                string
+C1                   int64
+banner_pos           int64
+site_id                str
+site_domain            str
+site_category          str
+app_id                 str
+app_domain             str
+app_category           str
+device_id              str
+device_ip              str
+device_model           str
+device_type          int64
+device_conn_type     int64
+C14                  int64
+C15                  int64
+C16                  int64
+C17                  int64
+C18                  int64
+C19                  int64
+C20                  int64
+C21                  int64
+dtype: object
+
+缺失值数量：
+Series([], dtype: int64)
+没有发现缺失值
+
+样本中的重复 id 数量：0
+
+无效 hour 数量：0
+最早时间：2014-10-21 00:00:00
+最晚时间：2014-10-21 00:00:00
+
+click 取值：
+[0, 1]
+
+click 数量分布：
+click
+0    82510
+1    17490
+Name: count, dtype: int64
+
+非法 click 数量：0
+样本点击率：17.4900%
+
+======================================================================
+正在检查：test.csv
+======================================================================
+样本行数：100,000
+字段数量：23
+
+字段名称：
+['id', 'hour', 'C1', 'banner_pos', 'site_id', 'site_domain', 'site_category', 'app_id', 'app_domain', 'app_category', 'device_id', 'device_ip', 'device_model', 'device_type', 'device_conn_type', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21']
+
+数据类型：
+id                  string
+hour                string
+C1                   int64
+banner_pos           int64
+site_id                str
+site_domain            str
+site_category          str
+app_id                 str
+app_domain             str
+app_category           str
+device_id              str
+device_ip              str
+device_model           str
+device_type          int64
+device_conn_type     int64
+C14                  int64
+C15                  int64
+C16                  int64
+C17                  int64
+C18                  int64
+C19                  int64
+C20                  int64
+C21                  int64
+dtype: object
+
+缺失值数量：
+Series([], dtype: int64)
+没有发现缺失值
+
+样本中的重复 id 数量：0
+
+无效 hour 数量：0
+最早时间：2014-10-31 00:00:00
+最晚时间：2014-10-31 01:00:00
+
+======================================================================
+训练集和测试集字段对比
+======================================================================
+训练集独有字段： []
+测试集独有字段： []
+字段检查通过：训练集和测试集特征一致
