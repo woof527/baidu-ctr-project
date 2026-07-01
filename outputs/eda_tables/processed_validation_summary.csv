@@ -1,0 +1,2 @@
+validated_at,train_rows,test_rows,sample_submission_rows,train_impressions,train_clicks,train_ctr,click_0,click_1,click_na,click_invalid,train_hour_dt_missing,test_hour_dt_missing,train_has_click,test_has_click,columns_match_except_click,train_hour_fields_complete,test_hour_fields_complete,click_only_0_or_1,test_row_count_match_submission,test_id_order_match_submission,warning_count,validation_status
+2026-07-01T19:01:08,40428967,4577464,4577464,40428967,6865066,0.16980562476404604,33563901,6865066,0,0,0,0,True,False,True,True,True,True,True,True,0,PASSED
