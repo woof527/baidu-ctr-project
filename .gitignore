@@ -11,11 +11,24 @@ __pycache__/
 env/
 .env
 
-# raw and processed data
-data/raw/
-data/interim/
-data/processed/
-data/features/
+# ---------------------------------------------------------------------------
+# data：忽略大数据文件，保留 .gitkeep 与 README.md
+# ---------------------------------------------------------------------------
+
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/README.md
+
+data/interim/*
+!data/interim/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/README.md
+
+data/features/*
+!data/features/.gitkeep
+!data/features/README.md
 
 # model files
 models/
