@@ -1,0 +1,97 @@
+======================================================================
+百度 CTR 项目 — 基础 SQL 分析报告
+生成时间：2026-07-07 16:16:21
+数据库：  data/interim/baidu_ctr.db
+数据表：  train_events
+======================================================================
+
+【一、整体 CTR】
+----------------------------------------
+总曝光量 (impressions)：40,428,967
+总点击量 (clicks)：     6,865,066
+整体 CTR：              16.9806%
+
+【二、按 banner_pos 统计】（按 impressions 降序）
+----------------------------------------
+  banner_pos=0.0  impressions=  29,109,590  clicks= 4,781,901  ctr=16.4272%
+  banner_pos=1.0  impressions=  11,247,282  clicks= 2,065,164  ctr=18.3614%
+  banner_pos=7.0  impressions=      43,577  clicks=    13,949  ctr=32.0100%
+  banner_pos=2.0  impressions=      13,001  clicks=     1,550  ctr=11.9222%
+  banner_pos=4.0  impressions=       7,704  clicks=     1,428  ctr=18.5358%
+  banner_pos=5.0  impressions=       5,778  clicks=       702  ctr=12.1495%
+  banner_pos=3.0  impressions=       2,035  clicks=       372  ctr=18.2801%
+
+【三、按 device_type 统计】（按 impressions 降序）
+----------------------------------------
+  device_type=  1  impressions=  37,304,667  clicks= 6,311,046  ctr=16.9176%
+  device_type=  0  impressions=   2,220,812  clicks=   467,995  ctr=21.0731%
+  device_type=  4  impressions=     774,272  clicks=    73,900  ctr=9.5444%
+  device_type=  5  impressions=     129,185  clicks=    12,123  ctr=9.3842%
+  device_type=  2  impressions=          31  clicks=         2  ctr=6.4516%
+
+【四、按 hour_of_day 统计】（从 hour 字段提取，按小时升序）
+----------------------------------------
+  hour=00  impressions=     845,178  clicks=   152,429  ctr=18.0351%
+  hour=01  impressions=     984,784  clicks=   182,947  ctr=18.5774%
+  hour=02  impressions=   1,222,672  clicks=   215,322  ctr=17.6108%
+  hour=03  impressions=   1,399,001  clicks=   243,705  ctr=17.4199%
+  hour=04  impressions=   1,913,348  clicks=   305,308  ctr=15.9567%
+  hour=05  impressions=   1,982,179  clicks=   323,863  ctr=16.3387%
+  hour=06  impressions=   1,762,743  clicks=   296,346  ctr=16.8116%
+  hour=07  impressions=   1,857,712  clicks=   332,884  ctr=17.9190%
+  hour=08  impressions=   2,096,264  clicks=   342,120  ctr=16.3205%
+  hour=09  impressions=   2,276,401  clicks=   364,461  ctr=16.0104%
+  hour=10  impressions=   2,149,763  clicks=   346,662  ctr=16.1256%
+  hour=11  impressions=   2,052,023  clicks=   349,740  ctr=17.0437%
+  hour=12  impressions=   2,216,583  clicks=   378,443  ctr=17.0733%
+  hour=13  impressions=   2,388,730  clicks=   402,344  ctr=16.8434%
+  hour=14  impressions=   2,203,519  clicks=   391,011  ctr=17.7448%
+  hour=15  impressions=   2,081,422  clicks=   377,174  ctr=18.1210%
+  hour=16  impressions=   2,050,425  clicks=   367,939  ctr=17.9445%
+  hour=17  impressions=   2,029,527  clicks=   351,646  ctr=17.3265%
+  hour=18  impressions=   1,758,382  clicks=   295,711  ctr=16.8172%
+  hour=19  impressions=   1,318,225  clicks=   216,183  ctr=16.3996%
+  hour=20  impressions=   1,120,647  clicks=   179,876  ctr=16.0511%
+  hour=21  impressions=     992,963  clicks=   159,535  ctr=16.0666%
+  hour=22  impressions=     907,705  clicks=   148,718  ctr=16.3840%
+  hour=23  impressions=     818,771  clicks=   140,699  ctr=17.1842%
+
+【五、按 site_category 统计】（曝光 Top 15）
+----------------------------------------
+  site_category=            50e219e0  impressions=  16,537,234  ctr=12.8580%
+  site_category=            f028772b  impressions=  12,657,073  ctr=17.9579%
+  site_category=            28905ebd  impressions=   7,377,208  ctr=20.8019%
+  site_category=            3e814130  impressions=   3,050,306  ctr=28.3003%
+  site_category=            f66779e6  impressions=     252,451  ctr=3.9687%
+  site_category=            75fa27f6  impressions=     160,985  ctr=11.1284%
+  site_category=            335d28a8  impressions=     136,463  ctr=9.3644%
+  site_category=            76b2941d  impressions=     104,754  ctr=3.0261%
+  site_category=            c0dd3be3  impressions=      42,090  ctr=11.1998%
+  site_category=            72722551  impressions=      28,216  ctr=5.7627%
+  site_category=            dedf689d  impressions=      24,500  ctr=51.4000%
+  site_category=            70fb0e29  impressions=      24,224  ctr=13.6146%
+  site_category=            0569f928  impressions=      17,106  ctr=5.3958%
+  site_category=            8fd0aea4  impressions=       7,482  ctr=1.4836%
+  site_category=            a818d37a  impressions=       3,230  ctr=0.4025%
+
+【六、按 app_category 统计】（曝光 Top 15）
+----------------------------------------
+  app_category=            07d7df22  impressions=  26,165,592  ctr=19.9148%
+  app_category=            0f2161f8  impressions=   9,561,058  ctr=10.8118%
+  app_category=            cef3e649  impressions=   1,731,545  ctr=9.3240%
+  app_category=            8ded1f7a  impressions=   1,467,257  ctr=8.9978%
+  app_category=            f95efa07  impressions=   1,141,673  ctr=24.7588%
+  app_category=            d1327cf5  impressions=     123,233  ctr=12.3319%
+  app_category=            09481d60  impressions=      54,886  ctr=15.5194%
+  app_category=            dc97ec06  impressions=      54,644  ctr=15.6504%
+  app_category=            75d80bbe  impressions=      40,108  ctr=9.5966%
+  app_category=            fc6fa53d  impressions=      23,663  ctr=4.8515%
+  app_category=            4ce2e9fc  impressions=      20,762  ctr=12.3784%
+  app_category=            879c24eb  impressions=      12,785  ctr=10.4732%
+  app_category=            a3c42688  impressions=      11,121  ctr=4.7208%
+  app_category=            4681bb9d  impressions=       6,291  ctr=14.4333%
+  app_category=            0f9a328c  impressions=       5,584  ctr=15.5265%
+
+======================================================================
+CSV 结果目录：outputs/sql_tables/
+======================================================================
