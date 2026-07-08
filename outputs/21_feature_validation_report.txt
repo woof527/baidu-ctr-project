@@ -1,0 +1,60 @@
+======================================================================
+百度 CTR 项目 — 特征初步有效性检查报告
+======================================================================
+
+【1. 样本与检查范围】
+样本量：500,000
+随机种子：42
+抽样来源：data/features/frequency/train/ 多个 Parquet 分块
+检查输入特征数量：12
+目标变量：click
+
+【2. 特征质量检查摘要】
+未发现缺失率超过 1% 的特征。
+
+未发现常数列。
+
+【3. 类别特征 CTR 差异摘要】
+  - banner_device_cross: ctr_spread=100.0000%, min=0.0000%, max=100.0000%, 统计类别数=14
+  - site_device_cross: ctr_spread=51.0345%, min=0.0000%, max=51.0345%, 统计类别数=20
+  - hour_banner_cross: ctr_spread=4.2027%, min=14.1002%, max=18.3029%, 统计类别数=20
+  - hour_of_day: ctr_spread=2.9951%, min=15.7876%, max=18.7827%, 统计类别数=24
+  - day_of_week: ctr_spread=2.7145%, min=15.5816%, max=18.2960%, 统计类别数=7
+  - is_weekend: ctr_spread=1.4930%, min=16.6070%, max=18.1000%, 统计类别数=2
+
+说明：高基数交叉特征（banner_device_cross、hour_banner_cross、site_device_cross）的 CTR 差异基于曝光 Top 20 类别计算。
+
+【4. 数值特征相关性摘要（Pearson）】
+  - app_id_freq: +0.103994
+  - app_category_freq: +0.100882
+  - site_category_freq: -0.096984
+  - site_id_freq: -0.086220
+  - is_weekend: +0.015250
+  - day_of_week: +0.013750
+  - day: -0.008381
+  - hour_of_day: -0.001870
+  - device_model_freq: +0.001265
+
+注意：Pearson 相关系数接近 0 不代表特征一定无用。
+树模型（LightGBM、XGBoost 等）可能学习到非线性关系，
+最终有效性仍需结合验证集 AUC、LogLoss 和模型特征重要性判断。
+
+【5. 当前阶段结论】
+- 本报告仅为 train 样本上的初步特征检查，不能替代正式建模评估。
+- 时间特征、交叉特征、频次特征整体已完成质量检查，可进入后续模型验证流程。
+- 类别 CTR spread 较大的特征，通常表示在不同取值之间「有一定区分度」。
+- 是否「值得进入后续模型验证」，需结合本报告与 EDA / SQL 分析综合判断。
+- 最终特征有效性必须结合验证集 AUC、LogLoss 和模型重要性结果确认。
+
+【6. 注意事项】
+- 未使用 test 数据进行特征有效性判断，避免信息泄漏。
+- 未做目标编码，未做模型训练。
+- 全量 train 超过 4000 万行，本报告基于随机样本，结论存在抽样误差。
+- 数据库与原始 Parquet 数据未被修改。
+
+【输出文件】
+  - outputs/feature_validation/feature_quality_summary.csv
+  - outputs/feature_validation/categorical_ctr_summary.csv
+  - outputs/feature_validation/categorical_feature_spread.csv
+  - outputs/feature_validation/numeric_feature_correlation.csv
+======================================================================

@@ -1,0 +1,14 @@
+feature_name,feature_group,dtype,missing_count,missing_rate,unique_count,is_constant,min,max,mean,median,std
+hour_of_day,时间特征,Int64,0,0.0,24,False,0.0,23.0,11.276944,11.0,5.954230842568488
+day,时间特征,Int64,0,0.0,10,False,21.0,30.0,25.471398,26.0,2.9635882796547466
+day_of_week,时间特征,Int64,0,0.0,7,False,0.0,6.0,2.601832,2.0,1.7278958924149423
+is_weekend,时间特征,Int8,0,0.0,2,False,0.0,1.0,0.178022,0.0,0.3825316459809832
+banner_device_cross,交叉特征,string,0,0.0,14,False,,,,,
+hour_banner_cross,交叉特征,string,0,0.0,154,False,,,,,
+site_device_cross,交叉特征,string,0,0.0,25,False,,,,,
+site_id_freq,频次特征,int64,0,0.0,1363,False,1.0,14596137.0,6609467.581038,6486150.0,6374382.147195062
+site_category_freq,频次特征,int64,0,0.0,19,False,483.0,16537234.0,12304613.374732,12657073.0,4608389.074149346
+app_id_freq,频次特征,int64,0,0.0,1144,False,1.0,25832830.0,16659302.113728,25832830.0,12190265.027028037
+app_category_freq,频次特征,int64,0,0.0,24,False,212.0,26165592.0,19341613.001138,26165592.0,9508292.288166197
+device_model_freq,频次特征,int64,0,0.0,2469,False,1.0,2455470.0,428070.606428,157362.0,635673.7609419391
+click,目标变量,Int8,0,0.0,2,False,0.0,1.0,0.168728,0.0,0.3745118723542487
