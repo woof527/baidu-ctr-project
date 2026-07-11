@@ -1,0 +1,80 @@
+百度 CTR 项目 — 平滑 Target Encoding 特征报告（正式模式）
+======================================================================
+
+一、处理字段
+  - site_id
+  - site_category
+  - app_id
+  - app_category
+  - device_model
+
+二、新增特征
+  - site_id_te
+  - site_category_te
+  - app_id_te
+  - app_category_te
+  - device_model_te
+
+三、平滑参数
+  SMOOTHING_STRENGTH = 20
+  DEFAULT_PRIOR = 0.17
+
+四、prior 使用规则
+  - prior_ctr = 当前历史窗口全局 CTR（总点击 / 总样本）
+  - 有历史类别的 TE 使用平滑公式：
+    TE = (category_clicks + SMOOTHING_STRENGTH * prior_ctr) / (category_count + SMOOTHING_STRENGTH)
+  - 未见类别：使用 prior_ctr；无历史窗口时使用 DEFAULT_PRIOR
+  - 所有 TE 值限制在 [0, 1]
+
+五、各 split 总行数
+  train：   33,777,421
+  valid：   3,832,608
+  holdout： 4,218,938
+
+六、valid / holdout 未见类别比例
+  valid：
+    site_id: 0.0716%
+    site_category: 0.0000%
+    app_id: 0.1852%
+    app_category: 0.0000%
+    device_model: 0.0075%
+  holdout：
+    site_id: 0.1011%
+    site_category: 0.0000%
+    app_id: 0.0768%
+    app_category: 0.0000%
+    device_model: 0.0049%
+
+七、各 TE 特征统计（min / max / mean）
+  site_id_te:
+    最小值：0.00010752066288971849
+    最大值：0.7610368143459916
+    均值：  0.17332219726310027
+  site_category_te:
+    最小值：0.0036696382406918144
+    最大值：0.5226803240924287
+    均值：  0.17112351233045262
+  app_id_te:
+    最小值：0.0008279140451099254
+    最大值：0.9610529389058498
+    均值：  0.16998698129626702
+  app_category_te:
+    最小值：0.013753364519000156
+    最大值：0.24707285513346672
+    均值：  0.171567208173659
+  device_model_te:
+    最小值：0.003015620494621271
+    最大值：0.5966523760115207
+    均值：  0.16953508017049976
+
+八、数据泄漏防范方式
+  - train 按日期升序处理；日期 d 的 TE 仅使用严格早于 d 的历史累计
+  - 当日全部样本映射完成后，才将当日 click 并入历史状态
+  - valid TE 映射仅由完整 train 聚合，不使用 valid 自身 click
+  - holdout TE 映射仅由 train + valid 聚合，不使用 holdout 自身 click
+  - 禁止使用当前行 click 生成本行 TE 特征
+
+九、输出目录
+  train: data/features/target_encoded/train
+  valid: data/features/target_encoded/valid
+  holdout: data/features/target_encoded/holdout

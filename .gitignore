@@ -44,3 +44,17 @@ outputs/*.log
 
 # editor settings
 .idea/
+
+# model input data
+data/model_input/
+
+# advanced feature data
+data/features/historical/
+data/features/historical_test/
+data/features/target_encoded/
+data/features/target_encoded_test/
+
+# large feature mapping tables
+outputs/feature_tables/historical/
+outputs/feature_tables/target_encoding/
+

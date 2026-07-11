@@ -1,0 +1,89 @@
+百度 CTR 项目 — 历史统计特征工程报告
+======================================================================
+
+一、输入数据范围
+  train 输入目录：   data/model_input/train
+  valid 输入目录：   data/model_input/valid
+  holdout 输入目录： data/model_input/holdout
+
+二、各 split 日期范围
+  train：   2014-10-21 ~ 2014-10-28
+  valid：   2014-10-29 ~ 2014-10-29
+  holdout： 2014-10-30 ~ 2014-10-30
+
+三、处理字段
+  - site_id
+  - site_category
+  - app_id
+  - app_category
+  - device_model
+
+四、新增特征（共 20 个）
+  - site_id_hist_impressions
+  - site_id_hist_clicks
+  - site_id_hist_ctr
+  - site_id_exposure_percentile
+  - site_category_hist_impressions
+  - site_category_hist_clicks
+  - site_category_hist_ctr
+  - site_category_exposure_percentile
+  - app_id_hist_impressions
+  - app_id_hist_clicks
+  - app_id_hist_ctr
+  - app_id_exposure_percentile
+  - app_category_hist_impressions
+  - app_category_hist_clicks
+  - app_category_hist_ctr
+  - app_category_exposure_percentile
+  - device_model_hist_impressions
+  - device_model_hist_clicks
+  - device_model_hist_ctr
+  - device_model_exposure_percentile
+
+五、各 split 总行数
+  train：   33,777,421
+  valid：   3,832,608
+  holdout： 4,218,938
+
+六、valid / holdout 未见类别比例（hist_impressions == 0）
+  valid：
+    site_id: 0.0716%
+    site_category: 0.0000%
+    app_id: 0.1852%
+    app_category: 0.0000%
+    device_model: 0.0075%
+  holdout：
+    site_id: 0.1011%
+    site_category: 0.0000%
+    app_id: 0.0768%
+    app_category: 0.0000%
+    device_model: 0.0049%
+
+七、特征取值范围
+  hist_ctr 最小值：           0.0
+  hist_ctr 最大值：           1.0
+  exposure_percentile 最小值：0.0
+  exposure_percentile 最大值：1.0
+
+八、数据泄漏防范方式
+  - train 按日期升序处理；日期 d 的特征仅使用严格早于 d 的历史累计
+  - 当日全部样本映射完成后，才将当日 click/曝光并入历史状态
+  - valid 映射仅由完整 train 聚合，不使用 valid 自身 click
+  - holdout 映射仅由 train + valid 聚合，不使用 holdout 自身 click
+  - 禁止使用当前行 click 生成本行历史特征
+
+九、第一日冷启动处理
+  - DEFAULT_PRIOR = 0.17
+  - 第一日无历史窗口：hist_impressions=0, hist_clicks=0
+  - hist_ctr 使用 DEFAULT_PRIOR（0.17）
+  - exposure_percentile = 0
+
+十、未见类别处理
+  - hist_impressions = 0, hist_clicks = 0
+  - hist_ctr 使用当前历史窗口 prior_ctr（全局 CTR）
+  - 若无历史窗口则使用 DEFAULT_PRIOR（0.17）
+  - exposure_percentile = 0
+
+十一、输出目录
+  特征：data/features/historical/
+  映射：outputs/feature_tables/historical/
