@@ -1,8 +1,8 @@
 # 特征字典
 
 **项目名称：** 百度广告点击率预测与投放优化分析  
-**文档阶段：** 第二阶段 — 特征工程（第二版）  
-**数据基础：** 清洗后 Parquet / SQLite；特征文件 `data/features/basic/`、`data/features/frequency/`
+**文档阶段：** 第二阶段 — 特征工程（第三版）  
+**数据基础：** 清洗后 Parquet / SQLite；特征文件 `data/features/basic/`、`data/features/frequency/`、`data/features/historical/`、`data/features/target_encoded/`
 
 > 说明：本文档记录原始字段、已实现衍生特征及初步验证状态。  
 > 特征有效性结论以 `outputs/21_feature_validation_report.txt` 为准；文中不将任何特征表述为「一定有效」。
@@ -222,7 +222,199 @@ data/features/basic/train|test/
 data/features/frequency/train|test/
         ↓  scripts/21_validate_features.py
 outputs/feature_validation/ 、 outputs/21_feature_validation_report.txt
+
+data/features/frequency/train/
+        ↓  scripts/22_time_split.py
+data/model_input/train|valid|holdout/
+        ↓  scripts/23_build_historical_features.py
+data/features/historical/train|valid|holdout/
+        ↓  scripts/24_build_target_encoding.py
+data/features/target_encoded/train|valid|holdout/
+        ↓  scripts/25_validate_advanced_features.py
+outputs/advanced_feature_validation_summary.csv
+outputs/advanced_feature_column_stats.csv
+outputs/advanced_feature_validation_report.txt
 ```
+
+---
+
+## 9. 数据时间划分说明
+
+**划分脚本：** `scripts/22_time_split.py`  
+**输出路径：** `data/model_input/train/`、`data/model_input/valid/`、`data/model_input/holdout/`
+
+模型数据按 `hour_dt`（或 `hour`）的**真实日期**做时间顺序划分，**不能随机划分**。若采用随机划分，历史统计特征与平滑目标编码会引入未来信息，造成数据泄漏。
+
+| 划分 | 日期范围 | 用途 | 可用历史信息 |
+|------|----------|------|--------------|
+| **train** | 2014-10-21 ~ 2014-10-28 | 模型训练；构建按日递增的历史映射 | 仅严格早于当前样本日期的 train 数据 |
+| **valid** | 2014-10-29 | 模型选择、调参 | 仅完整 **train** 历史（不含 valid 自身 click） |
+| **holdout** | 2014-10-30 | 最终独立评估 | 完整 **train + valid** 历史（不含 holdout 自身 click） |
+
+**补充说明：**
+
+- train 内样本必须按全局日期升序构建历史；同一 Parquet 分块可能含多个日期，需按**行级日期**处理。
+- valid / holdout 各 split 内部，相同类别值应映射到相同的历史特征与 TE 值。
+
+---
+
+## 10. 历史统计特征（已实现）
+
+**生成脚本：** `scripts/23_build_historical_features.py`  
+**输出路径：** `data/features/historical/train/`、`data/features/historical/valid/`、`data/features/historical/holdout/`  
+**映射表：** `outputs/feature_tables/historical/*_history_mapping.parquet`
+
+**类别字段（5 个）：** `site_id`、`site_category`、`app_id`、`app_category`、`device_model`
+
+每个类别字段生成以下 4 类特征，**共 20 个历史统计特征**：
+
+### 10.1 特征定义
+
+| 特征名模式 | 含义 | 计算范围 | 冷启动 / 未见类别 |
+|------------|------|----------|-------------------|
+| `{field}_hist_impressions` | 当前日期之前，该类别累计曝光次数 | 只使用严格早于当前样本日期的数据 | **0** |
+| `{field}_hist_clicks` | 当前日期之前，该类别累计点击次数 | 只使用严格早于当前样本日期的数据 | **0** |
+| `{field}_hist_ctr` | 该类别历史点击率 | `hist_clicks / hist_impressions`；历史曝光为 0 时取 **0** | **0** |
+| `{field}_exposure_percentile` | 该类别历史曝光量在当前历史映射中的百分位排名；表示相对流量规模 | 对 `hist_impressions > 0` 的类别做 `rank(pct=True)` | **0** |
+
+**取值范围：**
+
+- `hist_impressions`、`hist_clicks`：非负整数
+- `hist_ctr`：**[0, 1]**
+- `exposure_percentile`：**[0, 1]**
+
+### 10.2 完整特征列表
+
+| 特征名 | 来源字段 | 数据类型 | 状态 |
+|--------|----------|----------|------|
+| `site_id_hist_impressions` | `site_id` | 整型 | **已实现** |
+| `site_id_hist_clicks` | `site_id` | 整型 | **已实现** |
+| `site_id_hist_ctr` | `site_id` | 浮点 | **已实现** |
+| `site_id_exposure_percentile` | `site_id` | 浮点 | **已实现** |
+| `site_category_hist_impressions` | `site_category` | 整型 | **已实现** |
+| `site_category_hist_clicks` | `site_category` | 整型 | **已实现** |
+| `site_category_hist_ctr` | `site_category` | 浮点 | **已实现** |
+| `site_category_exposure_percentile` | `site_category` | 浮点 | **已实现** |
+| `app_id_hist_impressions` | `app_id` | 整型 | **已实现** |
+| `app_id_hist_clicks` | `app_id` | 整型 | **已实现** |
+| `app_id_hist_ctr` | `app_id` | 浮点 | **已实现** |
+| `app_id_exposure_percentile` | `app_id` | 浮点 | **已实现** |
+| `app_category_hist_impressions` | `app_category` | 整型 | **已实现** |
+| `app_category_hist_clicks` | `app_category` | 整型 | **已实现** |
+| `app_category_hist_ctr` | `app_category` | 浮点 | **已实现** |
+| `app_category_exposure_percentile` | `app_category` | 浮点 | **已实现** |
+| `device_model_hist_impressions` | `device_model` | 整型 | **已实现** |
+| `device_model_hist_clicks` | `device_model` | 整型 | **已实现** |
+| `device_model_hist_ctr` | `device_model` | 浮点 | **已实现** |
+| `device_model_exposure_percentile` | `device_model` | 浮点 | **已实现** |
+
+### 10.3 生成方法说明
+
+| 项目 | 说明 |
+|------|------|
+| train 处理方式 | 三阶段：① 按行 `event_date` 汇总日统计；② 全局日期升序构建「截至前一天」映射；③ 逐文件、逐行匹配映射并写出 |
+| valid 历史来源 | 完整 train 聚合（Dask），不使用 valid 自身 click |
+| holdout 历史来源 | train + valid 聚合（Dask），不使用 holdout 自身 click |
+| 日期字段 | 优先 `date`，否则从 `hour`（`YYMMDDHH`）解析为 `event_date` |
+| train 最早日期冷启动 | 2014-10-21 全部 20 个历史特征应为 0 |
+
+**设计目的：** 在避免目标泄漏的前提下，刻画类别在**过去**的曝光规模、点击表现与相对热度，为 CTR 建模提供时序安全的统计特征。
+
+---
+
+## 11. 平滑目标编码特征（已实现）
+
+**生成脚本：** `scripts/24_build_target_encoding.py`  
+**输出路径：** `data/features/target_encoded/train/`、`data/features/target_encoded/valid/`、`data/features/target_encoded/holdout/`
+
+平滑目标编码（Target Encoding, TE）结合类别历史 CTR、历史曝光量与整体 CTR，降低低频类别原始 CTR 过度波动的问题。
+
+| 特征名 | 来源字段 | 数据类型 | 状态 |
+|--------|----------|----------|------|
+| `site_id_te` | `site_id` | 浮点 | **已实现** |
+| `site_category_te` | `site_category` | 浮点 | **已实现** |
+| `app_id_te` | `app_id` | 浮点 | **已实现** |
+| `app_category_te` | `app_category` | 浮点 | **已实现** |
+| `device_model_te` | `device_model` | 浮点 | **已实现** |
+
+### 11.1 计算公式
+
+一般形式：
+
+```
+TE = (类别历史点击数 + 平滑系数 × 整体 CTR)
+     / (类别历史曝光数 + 平滑系数)
+```
+
+当前项目参数：
+
+| 参数 | 取值 | 说明 |
+|------|------|------|
+| 平滑系数（`SMOOTHING_STRENGTH`） | 20 | 曝光越少，越向整体 CTR 收缩 |
+| 冷启动先验（`DEFAULT_PRIOR`） | 0.17 | 无历史窗口时使用 |
+| 整体 CTR（`prior_ctr`） | 历史窗口内 `总点击 / 总曝光` | 作为平滑项中的整体 CTR |
+
+### 11.2 映射与回退规则
+
+| 项目 | 说明 |
+|------|------|
+| train | 必须遵守时间顺序；日期 *d* 的 TE 仅使用严格早于 *d* 的历史 |
+| valid | 使用完整 **train** 映射 |
+| holdout | 使用完整 **train + valid** 映射 |
+| 未出现类别 | 回退到当前历史窗口的**整体 CTR**（`prior_ctr`）；无历史窗口时使用 `DEFAULT_PRIOR` |
+| 取值范围 | **[0, 1]** |
+
+**设计目的：** 在控制泄漏的同时，将高基数类别映射为单一数值特征，兼顾类别历史点击倾向与低频稳定性。
+
+---
+
+## 12. 数据泄漏控制（高级特征）
+
+以下原则适用于历史统计特征与平滑目标编码的生成与使用：
+
+1. **Parquet 只是物理分块**  
+   一个文件可能包含多个日期（例如 `part-0020.parquet` 同时含 2014-10-21 与 2014-10-22）。历史特征必须依据**每行真实日期**计算，**不能**按文件级日期或文件顺序推断历史范围。
+
+2. **先映射、后累计**  
+   当前日期全部样本的历史特征生成完成后，才允许把当前日期的曝光量与点击量加入累计历史映射。禁止边处理当前日行、边把当前日行 click 写入历史。
+
+3. **train 最早日期冷启动**  
+   train 最早日期（2014-10-21）的全部历史统计特征必须为 **0**（含 `hist_impressions`、`hist_clicks`、`hist_ctr`、`exposure_percentile`）。
+
+4. **valid / holdout 禁用自身标签**  
+   valid 映射仅由 train 构建；holdout 映射仅由 train + valid 构建。两个 split **内部不得**使用自身 `click` 参与映射统计。
+
+5. **禁止随机时间划分**  
+   训练/验证/留出集必须按时间切分，否则历史特征与 TE 会引用未来 click，导致评估虚高。
+
+6. **`click` 仍不得作为普通输入特征**  
+   历史特征与 TE 虽使用历史 click 聚合，但均严格限定在样本日期之前；当前行 `click` 不得参与当前行特征计算。
+
+---
+
+## 13. 高级特征验收结果
+
+**验收脚本：** `scripts/25_validate_advanced_features.py`  
+**报告与明细：** `outputs/advanced_feature_validation_report.txt`、`outputs/advanced_feature_validation_summary.csv`、`outputs/advanced_feature_column_stats.csv`
+
+### 13.1 验收范围
+
+| 阶段 | 路径 | 列数（约） |
+|------|------|------------|
+| 时间划分结果 | `data/model_input/{train,valid,holdout}/` | 39 |
+| 历史统计特征 | `data/features/historical/{train,valid,holdout}/` | 59 |
+| 目标编码结果 | `data/features/target_encoded/{train,valid,holdout}/` | 64 |
+
+验收项包括：文件与行数一致性、字段完整性、缺失值/无穷值、取值范围、时间划分、冷启动与映射一致性、ID 抽样对齐等。
+
+### 13.2 验收结论
+
+| 项目 | 结果 |
+|------|------|
+| 通过项目 | **40** |
+| 警告项目 | **0** |
+| 错误项目 | **0** |
+| **验收结论** | **高级特征验收通过，可以进入模型训练** |
 
 ---
 
@@ -233,8 +425,16 @@ outputs/feature_validation/ 、 outputs/21_feature_validation_report.txt
 | 基础特征工程 | `scripts/19_build_basic_features.py` |
 | 频次特征工程 | `scripts/20_build_frequency_features.py` |
 | 特征初步验证 | `scripts/21_validate_features.py` |
+| 时间划分 | `scripts/22_time_split.py` |
+| 历史统计特征工程 | `scripts/23_build_historical_features.py` |
+| 平滑目标编码 | `scripts/24_build_target_encoding.py` |
+| 高级特征验收 | `scripts/25_validate_advanced_features.py` |
 | 特征字典（本文档） | `docs/feature_dictionary.md` |
 | 频次映射表 | `outputs/feature_tables/*_frequency.csv` |
-| 验证报告 | `outputs/21_feature_validation_report.txt` |
+| 历史映射表 | `outputs/feature_tables/historical/` |
+| 初步验证报告 | `outputs/21_feature_validation_report.txt` |
 | 验证明细 CSV | `outputs/feature_validation/` |
-| 特征数据目录 | `data/features/basic/`、`data/features/frequency/` |
+| 高级特征验收报告 | `outputs/advanced_feature_validation_report.txt` |
+| 高级特征验收明细 | `outputs/advanced_feature_validation_summary.csv`、`outputs/advanced_feature_column_stats.csv` |
+| 特征数据目录 | `data/features/basic/`、`data/features/frequency/`、`data/features/historical/`、`data/features/target_encoded/` |
+| 建模输入目录 | `data/model_input/` |
