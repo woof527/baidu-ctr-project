@@ -1,0 +1,10 @@
+split,stage,file_count,row_count,column_count,status
+train,model_input,162,32377421,39,PASS
+valid,model_input,21,3832608,39,PASS
+holdout,model_input,22,4218938,39,PASS
+train,historical,162,32377421,59,PASS
+valid,historical,21,3832608,59,PASS
+holdout,historical,22,4218938,59,PASS
+train,target_encoded,162,32377421,64,PASS
+valid,target_encoded,21,3832608,64,PASS
+holdout,target_encoded,22,4218938,64,PASS

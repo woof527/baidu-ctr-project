@@ -28,6 +28,7 @@
 
 from __future__ import annotations
 
+import gc
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,13 +36,14 @@ from pathlib import Path
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 
 # ---------------------------------------------------------------------------
 # 全局配置
 # ---------------------------------------------------------------------------
 
-# 冷启动先验 CTR：无历史窗口时使用，不从当前或未来数据计算
+# 保留常量；train 冷启动与未见类别现统一使用 0，不再用 prior 填充 hist_ctr
 DEFAULT_PRIOR = 0.17
 
 HIST_FIELDS = [
@@ -66,7 +68,7 @@ OUTPUT_DIRS = {
 MAPPING_DIR = Path("outputs/feature_tables/historical")
 REPORT_PATH = Path("outputs/23_historical_feature_report.txt")
 
-REQUIRED_COLUMNS = ["hour_dt", "click", *HIST_FIELDS]
+REQUIRED_COLUMNS = ["click", *HIST_FIELDS]
 
 # 与 22_time_split 一致的日期边界
 SPLIT_DATE_RANGES = {
@@ -74,6 +76,17 @@ SPLIT_DATE_RANGES = {
     "valid": (pd.Timestamp("2014-10-29"), pd.Timestamp("2014-10-29")),
     "holdout": (pd.Timestamp("2014-10-30"), pd.Timestamp("2014-10-30")),
 }
+
+COLD_START_HIST_FEATURES = [
+    name
+    for hist_field in HIST_FIELDS
+    for name in (
+        f"{hist_field}_hist_impressions",
+        f"{hist_field}_hist_clicks",
+        f"{hist_field}_hist_ctr",
+        f"{hist_field}_exposure_percentile",
+    )
+]
 
 
 def get_feature_names() -> list[str]:
@@ -111,19 +124,26 @@ def list_parquet_files(parquet_dir: Path, upstream_script: str) -> list[Path]:
     return files
 
 
-def warn_if_output_exists() -> None:
-    """若输出目录已有旧 Parquet，提示用户避免混用结果。"""
+def count_rows_from_metadata(parquet_files: list[Path]) -> int:
+    """使用 Parquet metadata 统计行数。"""
+
+    return sum(pq.read_metadata(path).num_rows for path in parquet_files)
+
+
+def clean_historical_outputs() -> None:
+    """运行前清理 historical 三个 split 目录中的旧 Parquet 输出。"""
+
+    print("\n清理旧的历史特征输出文件...")
 
     for split_name, output_dir in OUTPUT_DIRS.items():
-        if not output_dir.exists():
-            continue
+        output_dir.mkdir(parents=True, exist_ok=True)
+        removed = 0
 
-        existing = sorted(output_dir.glob("part-*.parquet"))
-        if existing:
-            print(
-                f"WARNING: {output_dir} 已存在 {len(existing)} 个 Parquet 文件，"
-                "继续运行可能覆盖或与旧结果混在一起。"
-            )
+        for parquet_path in sorted(output_dir.glob("part-*.parquet")):
+            parquet_path.unlink()
+            removed += 1
+
+        print(f"  {output_dir}: 已删除 {removed} 个旧 Parquet 文件")
 
 
 def ensure_dirs() -> None:
@@ -136,25 +156,54 @@ def ensure_dirs() -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
+def resolve_date_source_columns(columns: list[str]) -> list[str]:
+    """确定用于提取 event_date 的输入列（优先 date，其次 hour）。"""
+
+    if "date" in columns:
+        return ["date"]
+
+    if "hour" in columns:
+        return ["hour"]
+
+    raise ValueError("输入数据缺少 date / hour 字段，无法提取 event_date。")
+
+
+def extract_event_date(dataframe: pd.DataFrame) -> pd.Series:
+    """
+    提取归一化 event_date。
+
+    优先 date 列；若无则解析 hour 列（格式 YYMMDDHH）。
+    """
+
+    if "date" in dataframe.columns:
+        dates = pd.to_datetime(dataframe["date"], errors="coerce").dt.normalize()
+        if dates.notna().any():
+            return dates
+
+    if "hour" in dataframe.columns:
+        hour_text = dataframe["hour"].astype(str).str.replace(r"\.0$", "", regex=True)
+        hour_text = hour_text.str.zfill(8)
+        date_text = (
+            "20"
+            + hour_text.str.slice(0, 2)
+            + "-"
+            + hour_text.str.slice(2, 4)
+            + "-"
+            + hour_text.str.slice(4, 6)
+        )
+        dates = pd.to_datetime(date_text, errors="coerce").dt.normalize()
+        if dates.notna().any():
+            return dates
+
+    raise ValueError("无法从 date / hour 字段解析有效 event_date。")
+
+
 def validate_columns(dataframe: pd.DataFrame, context: str) -> None:
     """检查必需字段是否存在。"""
 
     missing = [col for col in REQUIRED_COLUMNS if col not in dataframe.columns]
     if missing:
         raise ValueError(f"{context} 缺少必需字段：{missing}")
-
-
-def extract_event_date(dataframe: pd.DataFrame) -> pd.Series:
-    """从 hour_dt 提取归一化日期。"""
-
-    if "hour_dt" not in dataframe.columns:
-        raise ValueError("输入数据缺少 hour_dt 字段，无法提取日期。")
-
-    hour_dt = pd.to_datetime(dataframe["hour_dt"], errors="coerce")
-    if hour_dt.isna().all():
-        raise ValueError("hour_dt 全部无法解析为有效时间。")
-
-    return hour_dt.dt.normalize()
 
 
 def feature_column_names(hist_field: str) -> dict[str, str]:
@@ -171,14 +220,12 @@ def feature_column_names(hist_field: str) -> dict[str, str]:
 def finalize_mapping(
     mapping_df: pd.DataFrame,
     hist_field: str,
-    prior_ctr: float,
-    has_history_window: bool,
 ) -> pd.DataFrame:
     """
     为映射表补全 hist_ctr 与 exposure_percentile。
 
     - 有历史曝光：hist_ctr = hist_clicks / hist_impressions
-    - 无历史曝光：hist_ctr = prior_ctr（有历史窗口）或 DEFAULT_PRIOR（冷启动）
+    - 无历史曝光：hist_ctr = 0
     - exposure_percentile：对 hist_impressions > 0 的类别 rank(pct=True)，其余为 0
     """
 
@@ -194,12 +241,11 @@ def finalize_mapping(
         )
 
     result = mapping_df.copy()
-    fallback_ctr = prior_ctr if has_history_window else DEFAULT_PRIOR
 
     result["hist_ctr"] = np.where(
         result["hist_impressions"] > 0,
         result["hist_clicks"] / result["hist_impressions"],
-        fallback_ctr,
+        0.0,
     )
 
     result["exposure_percentile"] = 0.0
@@ -219,7 +265,7 @@ def finalize_mapping(
 
 @dataclass
 class HistoryState:
-    """train 增量历史状态：仅包含已处理日期（严格早于当前日）的累计统计。"""
+    """累计历史状态：仅包含严格早于当前日的统计。"""
 
     category_stats: dict[str, dict[object, dict[str, int]]] = field(
         default_factory=lambda: {field_name: {} for field_name in HIST_FIELDS}
@@ -227,29 +273,6 @@ class HistoryState:
     total_impressions: int = 0
     total_clicks: int = 0
     processed_dates: list[pd.Timestamp] = field(default_factory=list)
-
-    def has_history_window(self) -> bool:
-        """是否已有历史窗口（即是否处理过至少一个日期）。"""
-
-        return self.total_impressions > 0
-
-    def prior_ctr(self) -> float:
-        """当前历史窗口的全局 CTR。"""
-
-        if self.total_impressions <= 0:
-            return DEFAULT_PRIOR
-
-        return self.total_clicks / self.total_impressions
-
-    def history_window_label(self, current_date: pd.Timestamp) -> str:
-        """用于日志：当前日可用的历史日期范围。"""
-
-        if not self.processed_dates:
-            return "无（冷启动）"
-
-        start_date = min(self.processed_dates).date().isoformat()
-        end_date = max(self.processed_dates).date().isoformat()
-        return f"{start_date} ~ {end_date}（严格早于 {current_date.date().isoformat()}）"
 
     def build_mapping(self, hist_field: str) -> pd.DataFrame:
         """由当前累计状态构建单个字段的历史映射表。"""
@@ -265,73 +288,145 @@ class HistoryState:
             )
 
         mapping_df = pd.DataFrame(rows)
-        if mapping_df.empty:
-            return finalize_mapping(
-                mapping_df,
-                hist_field,
-                self.prior_ctr(),
-                self.has_history_window(),
-            )
-
-        return finalize_mapping(
-            mapping_df,
-            hist_field,
-            self.prior_ctr(),
-            self.has_history_window(),
-        )
+        return finalize_mapping(mapping_df, hist_field)
 
     def build_all_mappings(self) -> dict[str, pd.DataFrame]:
         """构建 5 个字段的历史映射表。"""
 
         return {hist_field: self.build_mapping(hist_field) for hist_field in HIST_FIELDS}
 
-    def update_from_dataframe(self, dataframe: pd.DataFrame, event_date: pd.Timestamp) -> None:
-        """将当日数据累计进历史状态（必须在当日特征映射完成后调用）。"""
+    def update_from_daily_stats(
+        self,
+        daily_field_stats: dict[str, dict[object, dict[str, int]]],
+        event_date: pd.Timestamp,
+    ) -> None:
+        """将某一天的类别统计并入累计历史。"""
 
-        validate_columns(dataframe, context=f"日期 {event_date.date()}")
-
-        chunk_impressions = len(dataframe)
-        chunk_clicks = int(dataframe["click"].sum())
-
-        self.total_impressions += chunk_impressions
-        self.total_clicks += chunk_clicks
+        day_impressions = 0
+        day_clicks = 0
 
         for hist_field in HIST_FIELDS:
-            grouped = (
-                dataframe.groupby(hist_field, dropna=False)["click"]
-                .agg(clicks="sum", impressions="count")
-                .reset_index()
-            )
-
             field_stats = self.category_stats[hist_field]
-            for _, row in grouped.iterrows():
-                category = row[hist_field]
+
+            for category, stats in daily_field_stats.get(hist_field, {}).items():
                 if category not in field_stats:
                     field_stats[category] = {"impressions": 0, "clicks": 0}
 
-                field_stats[category]["impressions"] += int(row["impressions"])
-                field_stats[category]["clicks"] += int(row["clicks"])
+                field_stats[category]["impressions"] += int(stats["impressions"])
+                field_stats[category]["clicks"] += int(stats["clicks"])
+                day_impressions += int(stats["impressions"])
+                day_clicks += int(stats["clicks"])
+
+        self.total_impressions += day_impressions
+        self.total_clicks += day_clicks
 
         if event_date not in self.processed_dates:
             self.processed_dates.append(event_date)
 
 
+DailyStats = dict[pd.Timestamp, dict[str, dict[object, dict[str, int]]]]
+
+
+def aggregate_train_daily_stats(train_files: list[Path]) -> DailyStats:
+    """
+    第一阶段：逐文件汇总 train 的真实 event_date × 类别 日统计。
+
+    不依赖文件级日期，同一文件内不同 event_date 会分别累计。
+    """
+
+    daily_stats: DailyStats = defaultdict(
+        lambda: {field_name: {} for field_name in HIST_FIELDS}
+    )
+
+    print("\n[train 阶段 1/3] 按 event_date 汇总每日 impressions / clicks ...")
+
+    for file_index, input_path in enumerate(train_files, start=1):
+        schema_columns = pq.read_schema(input_path).names
+        date_columns = resolve_date_source_columns(schema_columns)
+        read_columns = list(dict.fromkeys(["click", *date_columns, *HIST_FIELDS]))
+
+        chunk = pd.read_parquet(input_path, columns=read_columns)
+        if chunk.empty:
+            raise ValueError(f"输入文件为空：{input_path}")
+
+        validate_columns(chunk, context=str(input_path))
+        event_dates = extract_event_date(chunk)
+
+        if event_dates.isna().any():
+            invalid_count = int(event_dates.isna().sum())
+            raise ValueError(f"{input_path} 存在 {invalid_count} 行无法解析 event_date")
+
+        chunk = chunk.assign(event_date=event_dates)
+
+        for event_date, day_chunk in chunk.groupby("event_date", sort=False):
+            normalized_date = pd.Timestamp(event_date)
+            day_field_stats = daily_stats[normalized_date]
+
+            for hist_field in HIST_FIELDS:
+                grouped = (
+                    day_chunk.groupby(hist_field, dropna=False)["click"]
+                    .agg(clicks="sum", impressions="count")
+                    .reset_index()
+                )
+
+                field_stats = day_field_stats[hist_field]
+                for _, row in grouped.iterrows():
+                    category = row[hist_field]
+                    if category not in field_stats:
+                        field_stats[category] = {"impressions": 0, "clicks": 0}
+
+                    field_stats[category]["impressions"] += int(row["impressions"])
+                    field_stats[category]["clicks"] += int(row["clicks"])
+
+        if file_index % 20 == 0 or file_index == len(train_files):
+            print(f"  已汇总 {file_index}/{len(train_files)} 个文件")
+
+        del chunk
+        gc.collect()
+
+    return dict(daily_stats)
+
+
+def build_train_mappings_by_date(
+    daily_stats: DailyStats,
+) -> tuple[dict[pd.Timestamp, dict[str, pd.DataFrame]], list[pd.Timestamp]]:
+    """
+    第二阶段：按全局日期升序，构建“截至前一天”的累计历史映射。
+
+    对 current_date：
+        1. 先保存严格早于 current_date 的映射
+        2. 再把 current_date 的日统计并入累计状态
+    """
+
+    sorted_dates = sorted(daily_stats.keys())
+    cumulative_state = HistoryState()
+    mappings_by_date: dict[pd.Timestamp, dict[str, pd.DataFrame]] = {}
+
+    print("\n[train 阶段 2/3] 按全局日期升序构建截至前一天的历史映射 ...")
+
+    for current_date in sorted_dates:
+        mappings_by_date[current_date] = cumulative_state.build_all_mappings()
+        cumulative_state.update_from_daily_stats(
+            daily_stats[current_date],
+            current_date,
+        )
+        print(f"  日期 {current_date.date()} 映射已就绪（严格早于该日的历史）")
+
+    return mappings_by_date, sorted_dates
+
+
 def apply_historical_features(
     dataframe: pd.DataFrame,
     mappings_by_field: dict[str, pd.DataFrame],
-    prior_ctr: float,
-    has_history_window: bool,
 ) -> pd.DataFrame:
     """
     将历史映射特征合并到 DataFrame。
 
-    未见类别：hist_impressions/clicks=0，hist_ctr=prior_ctr 或 DEFAULT_PRIOR，
-    exposure_percentile=0。
+    未见类别或冷启动：hist_impressions/clicks/ctr/exposure_percentile 均为 0。
     """
 
     validate_columns(dataframe, context="特征映射")
     result = dataframe.copy()
-    fallback_ctr = prior_ctr if has_history_window else DEFAULT_PRIOR
 
     for hist_field in HIST_FIELDS:
         col_names = feature_column_names(hist_field)
@@ -361,10 +456,53 @@ def apply_historical_features(
         result[col_names["hist_clicks"]] = (
             result[col_names["hist_clicks"]].fillna(0).astype("int64")
         )
-        result[col_names["hist_ctr"]] = result[col_names["hist_ctr"]].fillna(fallback_ctr)
+        result[col_names["hist_ctr"]] = (
+            result[col_names["hist_ctr"]].fillna(0.0).astype("float64")
+        )
         result[col_names["exposure_percentile"]] = (
             result[col_names["exposure_percentile"]].fillna(0.0).astype("float64")
         )
+
+    return result
+
+
+def apply_historical_features_by_row_date(
+    dataframe: pd.DataFrame,
+    event_dates: pd.Series,
+    mappings_by_date: dict[pd.Timestamp, dict[str, pd.DataFrame]],
+) -> pd.DataFrame:
+    """
+    按行 event_date 匹配严格早于当天的历史映射。
+
+    同一 Parquet 文件内若含多个日期，也会分别映射，且保持原始行顺序不变。
+    """
+
+    result = dataframe.copy()
+
+    for feature_name in get_feature_names():
+        if feature_name.endswith("_hist_impressions") or feature_name.endswith("_hist_clicks"):
+            result[feature_name] = 0
+        else:
+            result[feature_name] = 0.0
+
+    for event_date in pd.Series(event_dates.dropna().unique()).sort_values():
+        normalized_date = pd.Timestamp(event_date)
+        row_mask = event_dates == normalized_date
+
+        if not row_mask.any():
+            continue
+
+        date_mappings = mappings_by_date.get(normalized_date)
+        if date_mappings is None:
+            continue
+
+        featured_subset = apply_historical_features(
+            dataframe.loc[row_mask],
+            date_mappings,
+        )
+
+        for feature_name in get_feature_names():
+            result.loc[row_mask, feature_name] = featured_subset[feature_name].to_numpy()
 
     return result
 
@@ -408,30 +546,10 @@ def count_unseen_rows(dataframe: pd.DataFrame, hist_field: str) -> int:
     return int((dataframe[col_name] == 0).sum())
 
 
-def build_date_file_index(parquet_files: list[Path]) -> dict[pd.Timestamp, list[Path]]:
-    """扫描 train 文件，建立 日期 -> 文件列表 索引。"""
-
-    date_to_files: dict[pd.Timestamp, list[Path]] = defaultdict(list)
-
-    for input_path in parquet_files:
-        chunk = pd.read_parquet(input_path, columns=["hour_dt"])
-        if chunk.empty:
-            raise ValueError(f"输入文件为空：{input_path}")
-
-        event_dates = extract_event_date(chunk).dropna().unique()
-        if len(event_dates) == 0:
-            raise ValueError(f"文件 {input_path} 无有效 hour_dt，无法确定日期。")
-
-        for event_date in event_dates:
-            date_to_files[pd.Timestamp(event_date)].append(input_path)
-
-    return dict(sorted(date_to_files.items()))
-
-
 def build_history_mapping_dask(
     parquet_files: list[Path],
     split_label: str,
-) -> tuple[dict[str, pd.DataFrame], float, bool]:
+) -> dict[str, pd.DataFrame]:
     """
     使用 Dask 聚合历史映射（用于 valid / holdout 的先验历史）。
 
@@ -451,14 +569,11 @@ def build_history_mapping_dask(
 
     total_impressions = int(ddf.shape[0].compute())
     total_clicks = int(ddf["click"].sum().compute())
-    has_history_window = total_impressions > 0
-    prior_ctr = (
-        total_clicks / total_impressions if has_history_window else DEFAULT_PRIOR
-    )
 
     print(f"  历史总曝光：{total_impressions:,}")
     print(f"  历史总点击：{total_clicks:,}")
-    print(f"  prior_ctr：  {prior_ctr:.6f}")
+    if total_impressions > 0:
+        print(f"  prior_ctr：  {total_clicks / total_impressions:.6f}")
 
     mappings: dict[str, pd.DataFrame] = {}
 
@@ -475,15 +590,10 @@ def build_history_mapping_dask(
             .reset_index()
         )
 
-        mappings[hist_field] = finalize_mapping(
-            aggregated,
-            hist_field,
-            prior_ctr,
-            has_history_window,
-        )
+        mappings[hist_field] = finalize_mapping(aggregated, hist_field)
         print(f"    唯一类别数：{len(mappings[hist_field]):,}")
 
-    return mappings, prior_ctr, has_history_window
+    return mappings
 
 
 def save_mapping_tables(
@@ -506,8 +616,6 @@ def process_parquet_with_mapping(
     input_path: Path,
     output_path: Path,
     mappings_by_field: dict[str, pd.DataFrame],
-    prior_ctr: float,
-    has_history_window: bool,
 ) -> pd.DataFrame:
     """读取单个分块，映射历史特征并写出。"""
 
@@ -516,12 +624,7 @@ def process_parquet_with_mapping(
         raise ValueError(f"输入文件为空：{input_path}")
 
     validate_columns(chunk, context=str(input_path))
-    featured_chunk = apply_historical_features(
-        chunk,
-        mappings_by_field,
-        prior_ctr,
-        has_history_window,
-    )
+    featured_chunk = apply_historical_features(chunk, mappings_by_field)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     featured_chunk.to_parquet(output_path, index=False, engine="pyarrow")
@@ -536,8 +639,12 @@ class RunStats:
     train_rows: int = 0
     valid_rows: int = 0
     holdout_rows: int = 0
+    train_input_rows: int = 0
+    valid_input_rows: int = 0
+    holdout_input_rows: int = 0
     train_date_start: str | None = None
     train_date_end: str | None = None
+    train_earliest_date: str | None = None
     valid_date_start: str | None = None
     valid_date_end: str | None = None
     holdout_date_start: str | None = None
@@ -557,89 +664,88 @@ class RunStats:
 def process_train(
     train_files: list[Path],
     stats: RunStats,
-) -> None:
+) -> tuple[pd.Timestamp, dict[str, int]]:
     """
-    train 按日期升序处理：
-    1. 用严格早于当前日的历史状态建映射
-    2. 映射并写出当前日所有分块
-    3. 再将当前日 click/曝光累计进状态
+    train 三阶段处理：
+    1. 汇总每日统计
+    2. 构建截至前一天的历史映射
+    3. 逐文件、逐行 event_date 映射并写出
     """
 
-    date_to_files = build_date_file_index(train_files)
-    total_files = sum(len(files) for files in date_to_files.values())
-    completed_files = 0
-
-    if date_to_files:
-        stats.train_date_start = min(date_to_files).date().isoformat()
-        stats.train_date_end = max(date_to_files).date().isoformat()
-
-    state = HistoryState()
     output_dir = OUTPUT_DIRS["train"]
 
+    daily_stats = aggregate_train_daily_stats(train_files)
+    mappings_by_date, sorted_dates = build_train_mappings_by_date(daily_stats)
+
+    if sorted_dates:
+        stats.train_date_start = sorted_dates[0].date().isoformat()
+        stats.train_date_end = sorted_dates[-1].date().isoformat()
+        stats.train_earliest_date = stats.train_date_start
+
+    print("\n[train 阶段 3/3] 逐文件按行 event_date 映射历史特征 ...")
     print("\n" + "=" * 70)
     print("处理 split: train")
     print("=" * 70)
 
-    for event_date, files_for_date in date_to_files.items():
-        history_label = state.history_window_label(event_date)
-        mappings = state.build_all_mappings()
-        prior_ctr = state.prior_ctr()
-        has_history_window = state.has_history_window()
+    earliest_date = sorted_dates[0] if sorted_dates else None
+    earliest_violations = {feature_name: 0 for feature_name in COLD_START_HIST_FEATURES}
 
-        print(f"\n当前处理日期：{event_date.date().isoformat()}")
-        print(f"当前历史窗口：{history_label}")
-        print(f"prior_ctr：{prior_ctr:.6f}")
+    for file_index, input_path in enumerate(train_files, start=1):
+        schema_columns = pq.read_schema(input_path).names
+        date_columns = resolve_date_source_columns(schema_columns)
 
-        pending_updates: list[pd.DataFrame] = []
+        chunk = pd.read_parquet(input_path)
+        if chunk.empty:
+            raise ValueError(f"输入文件为空：{input_path}")
 
-        for input_path in sorted(files_for_date):
-            for hist_field in HIST_FIELDS:
-                print(f"  当前处理字段：{hist_field}")
+        validate_columns(chunk, context=str(input_path))
+        event_dates = extract_event_date(chunk)
 
-            output_path = output_dir / input_path.name
-            print("  当前 split：train")
-            print(f"  当前输入文件：{input_path}")
-            print(f"  当前输出文件：{output_path}")
+        if event_dates.isna().any():
+            invalid_count = int(event_dates.isna().sum())
+            raise ValueError(f"{input_path} 存在 {invalid_count} 行无法解析 event_date")
 
-            chunk = pd.read_parquet(input_path)
-            if chunk.empty:
-                raise ValueError(f"输入文件为空：{input_path}")
+        featured_chunk = apply_historical_features_by_row_date(
+            chunk,
+            event_dates,
+            mappings_by_date,
+        )
 
-            validate_columns(chunk, context=str(input_path))
-            featured_chunk = apply_historical_features(
-                chunk,
-                mappings,
-                prior_ctr,
-                has_history_window,
-            )
+        output_path = output_dir / input_path.name
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        featured_chunk.to_parquet(output_path, index=False, engine="pyarrow")
 
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            featured_chunk.to_parquet(output_path, index=False, engine="pyarrow")
+        row_count = len(featured_chunk)
+        stats.train_rows += row_count
+        update_feature_bounds(featured_chunk, stats.feature_bounds)
 
-            row_count = len(featured_chunk)
-            stats.train_rows += row_count
-            update_feature_bounds(featured_chunk, stats.feature_bounds)
-            pending_updates.append(chunk)
+        if earliest_date is not None:
+            earliest_mask = event_dates == earliest_date
+            if earliest_mask.any():
+                earliest_subset = featured_chunk.loc[earliest_mask]
+                for feature_name in COLD_START_HIST_FEATURES:
+                    values = pd.to_numeric(earliest_subset[feature_name], errors="coerce").fillna(-1)
+                    earliest_violations[feature_name] += int((values != 0).sum())
 
-            completed_files += 1
-            progress = completed_files / total_files * 100
-            print(f"  当前文件行数：{row_count:,}")
-            print(
-                f"  当前累计进度：{completed_files}/{total_files} 文件 "
-                f"({progress:.1f}%)，train 累计行数 {stats.train_rows:,}"
-            )
+        print("  当前 split：train")
+        print(f"  当前输入文件：{input_path}")
+        print(f"  当前输出文件：{output_path}")
+        print(f"  当前文件行数：{row_count:,}")
+        print(
+            f"  当前累计进度：{file_index}/{len(train_files)} 文件 "
+            f"({file_index / len(train_files) * 100:.1f}%)，train 累计行数 {stats.train_rows:,}"
+        )
 
-        # 当日全部文件映射完成后，才将当日 click/曝光并入历史状态
-        for chunk in pending_updates:
-            state.update_from_dataframe(chunk, event_date)
+        del chunk, featured_chunk, event_dates
+        gc.collect()
+
+    return earliest_date, earliest_violations
 
 
 def process_split_with_fixed_mapping(
     split_name: str,
     parquet_files: list[Path],
     mappings_by_field: dict[str, pd.DataFrame],
-    prior_ctr: float,
-    has_history_window: bool,
     stats: RunStats,
     track_unseen: bool,
 ) -> None:
@@ -663,7 +769,6 @@ def process_split_with_fixed_mapping(
     print(f"处理 split: {split_name}")
     print("=" * 70)
     print(f"当前历史窗口：{history_label}")
-    print(f"prior_ctr：{prior_ctr:.6f}")
 
     for file_index, input_path in enumerate(parquet_files, start=1):
         for hist_field in HIST_FIELDS:
@@ -678,8 +783,6 @@ def process_split_with_fixed_mapping(
             input_path,
             output_path,
             mappings_by_field,
-            prior_ctr,
-            has_history_window,
         )
 
         row_count = len(featured_chunk)
@@ -696,6 +799,9 @@ def process_split_with_fixed_mapping(
             f"  当前累计进度：{file_index}/{total_files} 文件 "
             f"({progress:.1f}%)，{split_name} 累计行数 {total_rows:,}"
         )
+
+        del featured_chunk
+        gc.collect()
 
     if split_name == "valid":
         stats.valid_rows = total_rows
@@ -752,9 +858,12 @@ def write_report(stats: RunStats) -> None:
         lines.append(f"  - {feature_name}")
     lines.append("")
     lines.append("五、各 split 总行数")
-    lines.append(f"  train：   {stats.train_rows:,}")
-    lines.append(f"  valid：   {stats.valid_rows:,}")
-    lines.append(f"  holdout： {stats.holdout_rows:,}")
+    lines.append(f"  train 输入：   {stats.train_input_rows:,}")
+    lines.append(f"  train 输出：   {stats.train_rows:,}")
+    lines.append(f"  valid 输入：   {stats.valid_input_rows:,}")
+    lines.append(f"  valid 输出：   {stats.valid_rows:,}")
+    lines.append(f"  holdout 输入： {stats.holdout_input_rows:,}")
+    lines.append(f"  holdout 输出： {stats.holdout_rows:,}")
     lines.append("")
     lines.append("六、valid / holdout 未见类别比例（hist_impressions == 0）")
     lines.append("  valid：")
@@ -777,25 +886,18 @@ def write_report(stats: RunStats) -> None:
     )
     lines.append("")
     lines.append("八、数据泄漏防范方式")
-    lines.append("  - train 按日期升序处理；日期 d 的特征仅使用严格早于 d 的历史累计")
-    lines.append("  - 当日全部样本映射完成后，才将当日 click/曝光并入历史状态")
+    lines.append("  - train 先汇总真实 event_date 日统计，再按全局日期升序构建截至前一天的映射")
+    lines.append("  - 写特征时按行 event_date 匹配映射，同一 Parquet 多日期也分别处理")
+    lines.append("  - current_date 全部样本映射完成后，才将 current_date 并入累计历史")
     lines.append("  - valid 映射仅由完整 train 聚合，不使用 valid 自身 click")
     lines.append("  - holdout 映射仅由 train + valid 聚合，不使用 holdout 自身 click")
     lines.append("  - 禁止使用当前行 click 生成本行历史特征")
     lines.append("")
-    lines.append("九、第一日冷启动处理")
-    lines.append(f"  - DEFAULT_PRIOR = {DEFAULT_PRIOR}")
-    lines.append("  - 第一日无历史窗口：hist_impressions=0, hist_clicks=0")
-    lines.append(f"  - hist_ctr 使用 DEFAULT_PRIOR（{DEFAULT_PRIOR}）")
-    lines.append("  - exposure_percentile = 0")
+    lines.append("九、冷启动处理")
+    lines.append("  - train 最早日期与未见类别：hist_impressions=0, hist_clicks=0")
+    lines.append("  - hist_ctr=0, exposure_percentile=0")
     lines.append("")
-    lines.append("十、未见类别处理")
-    lines.append("  - hist_impressions = 0, hist_clicks = 0")
-    lines.append("  - hist_ctr 使用当前历史窗口 prior_ctr（全局 CTR）")
-    lines.append(f"  - 若无历史窗口则使用 DEFAULT_PRIOR（{DEFAULT_PRIOR}）")
-    lines.append("  - exposure_percentile = 0")
-    lines.append("")
-    lines.append("十一、输出目录")
+    lines.append("十、输出目录")
     lines.append(f"  特征：{OUTPUT_DIRS['train'].parent}/")
     lines.append(f"  映射：{MAPPING_DIR}/")
 
@@ -803,13 +905,54 @@ def write_report(stats: RunStats) -> None:
     print(f"\n报告已保存：{REPORT_PATH}")
 
 
+def print_run_summary(
+    stats: RunStats,
+    earliest_date: pd.Timestamp | None,
+    earliest_violations: dict[str, int],
+) -> None:
+    """运行结束后打印汇总，并在最早日期存在非零历史计数时报错。"""
+
+    print("\n" + "=" * 70)
+    print("历史统计特征工程完成")
+    print("=" * 70)
+    print("各 split 输入 / 输出行数：")
+    print(f"  train：   输入 {stats.train_input_rows:,} → 输出 {stats.train_rows:,}")
+    print(f"  valid：   输入 {stats.valid_input_rows:,} → 输出 {stats.valid_rows:,}")
+    print(f"  holdout： 输入 {stats.holdout_input_rows:,} → 输出 {stats.holdout_rows:,}")
+    print(f"train 日期范围：{stats.train_date_start} ~ {stats.train_date_end}")
+    print(f"train 最早日期：{stats.train_earliest_date}")
+
+    if earliest_date is not None:
+        print(f"\ntrain 最早日期 {earliest_date.date()} 冷启动异常统计：")
+        total_violations = 0
+        for feature_name in COLD_START_HIST_FEATURES:
+            violation_count = earliest_violations.get(feature_name, 0)
+            total_violations += violation_count
+            print(f"  {feature_name}: 非零 {violation_count:,}")
+
+        if total_violations > 0:
+            raise ValueError(
+                f"train 最早日期 {earliest_date.date()} 存在 {total_violations:,} 个非零历史特征值，"
+                "冷启动检查失败。"
+            )
+
+        print("  最早日期冷启动检查：通过")
+
+    print("\n输出目录：")
+    for split_name, output_dir in OUTPUT_DIRS.items():
+        file_count = len(list(output_dir.glob("part-*.parquet")))
+        print(f"  {split_name}: {output_dir} ({file_count} 个文件)")
+    print(f"映射表目录： {MAPPING_DIR}")
+    print(f"报告：       {REPORT_PATH}")
+    print("=" * 70)
+
+
 def main() -> None:
-    """主流程：train 增量 → valid 映射 → holdout 映射 → 报告。"""
+    """主流程：清理旧输出 → train 三阶段 → valid/holdout 映射 → 报告。"""
 
     print("=" * 70)
     print("历史统计特征工程")
     print("=" * 70)
-    print(f"DEFAULT_PRIOR：{DEFAULT_PRIOR}")
     print(f"处理字段：     {HIST_FIELDS}")
     print(f"新增特征数：   {len(get_feature_names())}")
 
@@ -819,16 +962,24 @@ def main() -> None:
         INPUT_DIRS["holdout"], upstream_script="22_time_split.py"
     )
 
-    warn_if_output_exists()
+    clean_historical_outputs()
     ensure_dirs()
 
     stats = RunStats()
+    stats.train_input_rows = count_rows_from_metadata(train_files)
+    stats.valid_input_rows = count_rows_from_metadata(valid_files)
+    stats.holdout_input_rows = count_rows_from_metadata(holdout_files)
 
-    # 1. train：按日期递增、先映射后更新
-    process_train(train_files, stats)
+    # 1. train：三阶段按行 event_date 处理
+    earliest_date, earliest_violations = process_train(train_files, stats)
+
+    if stats.train_rows != stats.train_input_rows:
+        raise ValueError(
+            f"train 输出行数 {stats.train_rows:,} 与输入行数 {stats.train_input_rows:,} 不一致"
+        )
 
     # 2. valid：Dask 聚合 train 历史
-    valid_mappings, valid_prior_ctr, valid_has_history = build_history_mapping_dask(
+    valid_mappings = build_history_mapping_dask(
         train_files,
         split_label="train（供 valid 使用）",
     )
@@ -837,15 +988,18 @@ def main() -> None:
         split_name="valid",
         parquet_files=valid_files,
         mappings_by_field=valid_mappings,
-        prior_ctr=valid_prior_ctr,
-        has_history_window=valid_has_history,
         stats=stats,
         track_unseen=True,
     )
 
+    if stats.valid_rows != stats.valid_input_rows:
+        raise ValueError(
+            f"valid 输出行数 {stats.valid_rows:,} 与输入行数 {stats.valid_input_rows:,} 不一致"
+        )
+
     # 3. holdout：Dask 聚合 train + valid 历史
     holdout_source_files = train_files + valid_files
-    holdout_mappings, holdout_prior_ctr, holdout_has_history = build_history_mapping_dask(
+    holdout_mappings = build_history_mapping_dask(
         holdout_source_files,
         split_label="train + valid（供 holdout 使用）",
     )
@@ -854,27 +1008,18 @@ def main() -> None:
         split_name="holdout",
         parquet_files=holdout_files,
         mappings_by_field=holdout_mappings,
-        prior_ctr=holdout_prior_ctr,
-        has_history_window=holdout_has_history,
         stats=stats,
         track_unseen=True,
     )
 
-    write_report(stats)
+    if stats.holdout_rows != stats.holdout_input_rows:
+        raise ValueError(
+            f"holdout 输出行数 {stats.holdout_rows:,} 与输入行数 "
+            f"{stats.holdout_input_rows:,} 不一致"
+        )
 
-    print("\n" + "=" * 70)
-    print("历史统计特征工程完成")
-    print("=" * 70)
-    print(f"train 行数：   {stats.train_rows:,}")
-    print(f"valid 行数：   {stats.valid_rows:,}")
-    print(f"holdout 行数： {stats.holdout_rows:,}")
-    print("输出目录：")
-    for split_name, output_dir in OUTPUT_DIRS.items():
-        file_count = len(list(output_dir.glob("part-*.parquet")))
-        print(f"  {split_name}: {output_dir} ({file_count} 个文件)")
-    print(f"映射表目录： {MAPPING_DIR}")
-    print(f"报告：       {REPORT_PATH}")
-    print("=" * 70)
+    write_report(stats)
+    print_run_summary(stats, earliest_date, earliest_violations)
 
 
 if __name__ == "__main__":

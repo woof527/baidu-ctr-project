@@ -41,9 +41,12 @@
   - device_model_exposure_percentile
 
 五、各 split 总行数
-  train：   33,777,421
-  valid：   3,832,608
-  holdout： 4,218,938
+  train 输入：   32,377,421
+  train 输出：   32,377,421
+  valid 输入：   3,832,608
+  valid 输出：   3,832,608
+  holdout 输入： 4,218,938
+  holdout 输出： 4,218,938
 
 六、valid / holdout 未见类别比例（hist_impressions == 0）
   valid：
@@ -66,24 +69,17 @@
   exposure_percentile 最大值：1.0
 
 八、数据泄漏防范方式
-  - train 按日期升序处理；日期 d 的特征仅使用严格早于 d 的历史累计
-  - 当日全部样本映射完成后，才将当日 click/曝光并入历史状态
+  - train 先汇总真实 event_date 日统计，再按全局日期升序构建截至前一天的映射
+  - 写特征时按行 event_date 匹配映射，同一 Parquet 多日期也分别处理
+  - current_date 全部样本映射完成后，才将 current_date 并入累计历史
   - valid 映射仅由完整 train 聚合，不使用 valid 自身 click
   - holdout 映射仅由 train + valid 聚合，不使用 holdout 自身 click
   - 禁止使用当前行 click 生成本行历史特征
 
-九、第一日冷启动处理
-  - DEFAULT_PRIOR = 0.17
-  - 第一日无历史窗口：hist_impressions=0, hist_clicks=0
-  - hist_ctr 使用 DEFAULT_PRIOR（0.17）
-  - exposure_percentile = 0
+九、冷启动处理
+  - train 最早日期与未见类别：hist_impressions=0, hist_clicks=0
+  - hist_ctr=0, exposure_percentile=0
 
-十、未见类别处理
-  - hist_impressions = 0, hist_clicks = 0
-  - hist_ctr 使用当前历史窗口 prior_ctr（全局 CTR）
-  - 若无历史窗口则使用 DEFAULT_PRIOR（0.17）
-  - exposure_percentile = 0
-
-十一、输出目录
+十、输出目录
   特征：data/features/historical/
   映射：outputs/feature_tables/historical/

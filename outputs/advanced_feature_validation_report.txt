@@ -1,0 +1,69 @@
+百度 CTR 项目 — 高级特征统一验收报告
+======================================================================
+
+【通过项目】
+  ✓ [文件检查] model_input/train 存在 162 个 Parquet 文件
+  ✓ [文件检查] model_input/valid 存在 21 个 Parquet 文件
+  ✓ [文件检查] model_input/holdout 存在 22 个 Parquet 文件
+  ✓ [文件检查] historical/train 存在 162 个 Parquet 文件
+  ✓ [文件检查] historical/valid 存在 21 个 Parquet 文件
+  ✓ [文件检查] historical/holdout 存在 22 个 Parquet 文件
+  ✓ [文件检查] target_encoded/train 存在 162 个 Parquet 文件
+  ✓ [文件检查] target_encoded/valid 存在 21 个 Parquet 文件
+  ✓ [文件检查] target_encoded/holdout 存在 22 个 Parquet 文件
+  ✓ [行数一致性] train: model_input=32,377,421, historical=32,377,421, target_encoded=32,377,421
+  ✓ [行数一致性] valid: model_input=3,832,608, historical=3,832,608, target_encoded=3,832,608
+  ✓ [行数一致性] holdout: model_input=4,218,938, historical=4,218,938, target_encoded=4,218,938
+  ✓ [字段检查] target_encoded/train 保留全部原始字段（39 列基准）
+  ✓ [字段检查] target_encoded/train 包含 click 字段
+  ✓ [字段检查] target_encoded/train 包含全部 20 个历史统计特征
+  ✓ [字段检查] target_encoded/train 包含全部 5 个 TE 特征
+  ✓ [字段检查] target_encoded/valid 保留全部原始字段（39 列基准）
+  ✓ [字段检查] target_encoded/valid 包含 click 字段
+  ✓ [字段检查] target_encoded/valid 包含全部 20 个历史统计特征
+  ✓ [字段检查] target_encoded/valid 包含全部 5 个 TE 特征
+  ✓ [字段检查] target_encoded/holdout 保留全部原始字段（39 列基准）
+  ✓ [字段检查] target_encoded/holdout 包含 click 字段
+  ✓ [字段检查] target_encoded/holdout 包含全部 20 个历史统计特征
+  ✓ [字段检查] target_encoded/holdout 包含全部 5 个 TE 特征
+  ✓ [取值检查] 全部高级特征未发现 inf 或违规取值
+  ✓ [时间划分] train: 2014-10-21 ~ 2014-10-28 (来源列: hour)
+  ✓ [时间划分] valid: 2014-10-29 ~ 2014-10-29 (来源列: hour)
+  ✓ [时间划分] holdout: 2014-10-30 ~ 2014-10-30 (来源列: hour)
+  ✓ [时间划分] train 最大日期 2014-10-28 早于 valid 最小日期 2014-10-29
+  ✓ [时间划分] valid 最大日期 2014-10-29 早于 holdout 最小日期 2014-10-30
+  ✓ [时间划分] train / valid / holdout 之间无日期重叠
+  ✓ [泄漏检查] train 最早日期 2014-10-21 冷启动正确：检查 4,122,995 行，hist_impressions/hist_clicks/exposure_percentile 均为 0
+  ✓ [泄漏检查] valid 类别映射一致：同一类别值的历史特征与 TE 在 21 个文件中保持一致
+  ✓ [泄漏检查] holdout 类别映射一致：同一类别值的历史特征与 TE 在 22 个文件中保持一致
+  ✓ [ID 检查] train/part-0000.parquet id 完全一致（200,000 行）
+  ✓ [ID 检查] train/part-0161.parquet id 完全一致（177,421 行）
+  ✓ [ID 检查] valid/part-0161.parquet id 完全一致（22,579 行）
+  ✓ [ID 检查] valid/part-0181.parquet id 完全一致（10,029 行）
+  ✓ [ID 检查] holdout/part-0181.parquet id 完全一致（189,971 行）
+  ✓ [ID 检查] holdout/part-0202.parquet id 完全一致（28,967 行）
+
+【警告项目】
+  （无）
+
+【错误项目】
+  （无）
+
+【阶段汇总】
+  model_input/train: files=162, rows=32,377,421, cols=39, status=PASS
+  model_input/valid: files=21, rows=3,832,608, cols=39, status=PASS
+  model_input/holdout: files=22, rows=4,218,938, cols=39, status=PASS
+  historical/train: files=162, rows=32,377,421, cols=59, status=PASS
+  historical/valid: files=21, rows=3,832,608, cols=59, status=PASS
+  historical/holdout: files=22, rows=4,218,938, cols=59, status=PASS
+  target_encoded/train: files=162, rows=32,377,421, cols=64, status=PASS
+  target_encoded/valid: files=21, rows=3,832,608, cols=64, status=PASS
+  target_encoded/holdout: files=22, rows=4,218,938, cols=64, status=PASS
+
+【高级特征列统计摘要】
+  检查特征数：75
+  ERROR 特征数：0
+  WARNING 特征数：0
+
+【最终结论】
+  高级特征验收通过，可以进入模型训练。
