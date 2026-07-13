@@ -1,0 +1,64 @@
+百度 CTR 项目 — 增量式逻辑回归基线报告
+======================================================================
+
+当前模式：TEST_MODE=False（正式模式）
+
+【模型定义】
+  SGDClassifier(loss='log_loss', penalty='l2', alpha=1e-4,
+               learning_rate='optimal', random_state=42, average=True)
+
+【数据读取范围】
+  train 目录：data/features/target_encoded/train
+  valid 目录：data/features/target_encoded/valid
+  train 文件数：162
+  valid 文件数：21
+  batch_size：200,000
+
+【样本规模】
+  训练样本数：32,377,421
+  验证样本数：3,832,608
+  训练集点击率：0.171442
+  验证集点击率：0.156562
+
+【特征配置】
+  最终特征数量：33
+  基础输入特征：['app_category_exposure_percentile', 'app_category_freq', 'app_category_hist_clicks', 'app_category_hist_ctr', 'app_category_hist_impressions', 'app_category_te', 'app_id_exposure_percentile', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_ctr', 'app_id_hist_impressions', 'app_id_te', 'device_model_exposure_percentile', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_ctr', 'device_model_hist_impressions', 'device_model_te', 'is_weekend', 'site_category_exposure_percentile', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_ctr', 'site_category_hist_impressions', 'site_category_te', 'site_id_exposure_percentile', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_ctr', 'site_id_hist_impressions', 'site_id_te']
+  log1p 特征：['app_category_freq', 'app_category_hist_clicks', 'app_category_hist_impressions', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_impressions', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_impressions', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_impressions', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_impressions']
+  动态生成特征：['hour_sin', 'hour_cos']
+  最终特征列表：['app_category_exposure_percentile', 'app_category_freq', 'app_category_hist_clicks', 'app_category_hist_ctr', 'app_category_hist_impressions', 'app_category_te', 'app_id_exposure_percentile', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_ctr', 'app_id_hist_impressions', 'app_id_te', 'device_model_exposure_percentile', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_ctr', 'device_model_hist_impressions', 'device_model_te', 'is_weekend', 'site_category_exposure_percentile', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_ctr', 'site_category_hist_impressions', 'site_category_te', 'site_id_exposure_percentile', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_ctr', 'site_id_hist_impressions', 'site_id_te', 'hour_sin', 'hour_cos']
+
+【验证集指标】
+  ROC-AUC：0.731078941430253
+  LogLoss：0.4126315426040813
+  Accuracy：0.843478
+  Precision：0.500601
+  Recall：0.106873
+  F1：0.176141
+  valid 实际点击率：0.156562
+  valid 平均预测点击率：0.243979
+  0.5 阈值预测为点击比例：0.033424
+
+【系数绝对值 Top 15】
+  site_id_hist_clicks: coef=1.529530, abs=1.529530, direction=positive
+  site_id_hist_impressions: coef=-1.421250, abs=1.421250, direction=negative
+  app_id_hist_impressions: coef=-1.026331, abs=1.026331, direction=negative
+  app_id_hist_clicks: coef=0.954872, abs=0.954872, direction=positive
+  app_category_exposure_percentile: coef=-0.594860, abs=0.594860, direction=negative
+  device_model_hist_impressions: coef=-0.429652, abs=0.429652, direction=negative
+  app_category_hist_impressions: coef=-0.405586, abs=0.405586, direction=negative
+  device_model_hist_clicks: coef=0.392045, abs=0.392045, direction=positive
+  app_id_te: coef=0.316480, abs=0.316480, direction=positive
+  app_category_hist_clicks: coef=-0.291959, abs=0.291959, direction=negative
+  site_category_hist_impressions: coef=-0.280939, abs=0.280939, direction=negative
+  is_weekend: coef=0.276792, abs=0.276792, direction=positive
+  site_category_hist_ctr: coef=-0.274239, abs=0.274239, direction=negative
+  app_category_freq: coef=0.264214, abs=0.264214, direction=positive
+  site_id_te: coef=0.237787, abs=0.237787, direction=positive
+
+【当前局限性】
+  - 线性模型，无法自动捕捉复杂非线性交互
+  - 增量训练对特征缩放与 batch 顺序敏感
+  - 未使用 class_weight / 采样策略
+
+【重要说明】
+  - holdout 尚未使用

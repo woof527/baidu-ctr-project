@@ -1,0 +1,28 @@
+{
+  "roc_auc": 0.735405515794652,
+  "log_loss": 0.38523736790195107,
+  "accuracy": 0.84578,
+  "precision": 0.5907050435701082,
+  "recall": 0.05700524947760053,
+  "f1": 0.10397638801738363,
+  "valid_actual_ctr": 0.156968,
+  "valid_mean_predicted_ctr": 0.15702339927370149,
+  "predicted_click_ratio_at_threshold": 0.015148,
+  "best_iteration": 376,
+  "threshold": 0.5,
+  "logistic_baseline": {
+    "roc_auc": 0.731078941430253,
+    "log_loss": 0.4126315426040813,
+    "valid_actual_ctr": 0.1565620590469988,
+    "valid_mean_predicted_ctr": 0.2439792785058468
+  },
+  "comparison_with_logistic": {
+    "auc_higher_than_logistic": "是",
+    "logloss_lower_than_logistic": "是",
+    "predicted_ctr_closer_to_actual": "是",
+    "auc_diff": 0.004326574364398983,
+    "logloss_diff": -0.027394174702130236,
+    "predicted_ctr_gap": 5.539927370148967e-05,
+    "logistic_predicted_ctr_gap": 0.087417219458848
+  }
+}

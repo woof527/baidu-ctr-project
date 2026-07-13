@@ -1,0 +1,72 @@
+百度 CTR 项目 — LightGBM 基线报告
+======================================================================
+
+当前模式：TEST_MODE=False
+
+【模型定义】
+  LGBMClassifier(objective='binary', n_estimators=1000, learning_rate=0.05,
+               num_leaves=31, min_child_samples=500, subsample=0.8,
+               colsample_bytree=0.8, reg_lambda=1.0, random_state=42)
+
+【抽样配置】
+  目标 train 行数：2,000,000
+  目标 valid 行数：500,000
+  random_state：42
+  batch_size：200,000
+
+【样本规模】
+  训练样本数：2,000,000
+  验证样本数：500,000
+  train 日期覆盖：2014-10-21 ~ 2014-10-28
+  valid 日期覆盖：2014-10-29 ~ 2014-10-29
+
+【特征配置】
+  最终特征数量：33
+  特征列表：['app_category_exposure_percentile', 'app_category_freq', 'app_category_hist_clicks', 'app_category_hist_ctr', 'app_category_hist_impressions', 'app_category_te', 'app_id_exposure_percentile', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_ctr', 'app_id_hist_impressions', 'app_id_te', 'device_model_exposure_percentile', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_ctr', 'device_model_hist_impressions', 'device_model_te', 'is_weekend', 'site_category_exposure_percentile', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_ctr', 'site_category_hist_impressions', 'site_category_te', 'site_id_exposure_percentile', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_ctr', 'site_id_hist_impressions', 'site_id_te', 'hour_sin', 'hour_cos']
+
+【验证集指标】
+  best_iteration：376
+  ROC-AUC：0.735406
+  LogLoss：0.385237
+  Accuracy：0.845780
+  Precision：0.590705
+  Recall：0.057005
+  F1：0.103976
+  valid 实际 CTR：0.156968
+  valid 平均预测 CTR：0.157023
+  0.5 阈值预测点击比例：0.015148
+
+【与逻辑回归正式基线对比】
+  逻辑回归 ROC-AUC：0.731079
+  LightGBM ROC-AUC：0.735406（差异 +0.004327）
+  AUC 是否更高：是
+
+  逻辑回归 LogLoss：0.412632
+  LightGBM LogLoss：0.385237（差异 -0.027394）
+  LogLoss 是否更低：是
+
+  逻辑回归平均预测 CTR：0.243979
+  LightGBM 平均预测 CTR：0.157023
+  平均预测 CTR 是否更接近实际 CTR：是
+
+【特征重要性 Top 15（gain）】
+  说明：重要性仅代表模型中的预测贡献，不能解释为因果关系。
+  1. site_id_te: gain=744871.9454, split=722
+  2. app_id_te: gain=356207.1997, split=569
+  3. site_id_hist_ctr: gain=245904.5729, split=471
+  4. site_id_freq: gain=106841.7181, split=1058
+  5. device_model_te: gain=60708.5511, split=752
+  6. app_id_hist_ctr: gain=51887.3628, split=385
+  7. app_id_freq: gain=43184.3986, split=761
+  8. app_id_exposure_percentile: gain=32916.3028, split=232
+  9. device_model_freq: gain=28890.8108, split=825
+  10. device_model_hist_ctr: gain=23360.6697, split=615
+  11. site_id_exposure_percentile: gain=22298.6248, split=335
+  12. device_model_exposure_percentile: gain=21932.3286, split=529
+  13. hour_sin: gain=20129.7098, split=470
+  14. app_category_freq: gain=19867.9934, split=253
+  15. site_category_freq: gain=19031.0552, split=270
+
+【说明】
+  - holdout 尚未使用
+  - 当前为限流全量抽样训练，尚未使用 holdout

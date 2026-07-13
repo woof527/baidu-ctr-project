@@ -1,0 +1,13 @@
+{
+  "roc_auc": 0.731078941430253,
+  "log_loss": 0.4126315426040813,
+  "accuracy": 0.8434781224690864,
+  "precision": 0.5006010835115767,
+  "recall": 0.10687269703236946,
+  "f1": 0.17614122500662643,
+  "valid_actual_ctr": 0.1565620590469988,
+  "valid_mean_predicted_ctr": 0.2439792785058468,
+  "predicted_click_ratio_at_threshold": 0.03342423749050255,
+  "roc_auc_note": null,
+  "threshold": 0.5
+}
