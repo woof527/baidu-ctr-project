@@ -1,0 +1,43 @@
+{
+  "roc_auc": 0.7333192196993579,
+  "log_loss": 0.3860720694065094,
+  "accuracy": 0.84547,
+  "precision": 0.5890430971512053,
+  "recall": 0.051373528362468786,
+  "f1": 0.09450479907182786,
+  "valid_actual_ctr": 0.156968,
+  "valid_mean_predicted_ctr": 0.1563340574502945,
+  "predicted_click_ratio_at_threshold": 0.01369,
+  "best_iteration": 125,
+  "threshold": 0.5,
+  "test_mode": false,
+  "result_note": "正式模式结果，可与 holdout 评估结合使用。",
+  "logistic_baseline": {
+    "roc_auc": 0.731078941430253,
+    "log_loss": 0.4126315426040813,
+    "valid_actual_ctr": 0.1565620590469988,
+    "valid_mean_predicted_ctr": 0.2439792785058468
+  },
+  "lightgbm_baseline": {
+    "roc_auc": 0.735405515794652,
+    "log_loss": 0.38523736790195107,
+    "valid_actual_ctr": 0.156968,
+    "valid_mean_predicted_ctr": 0.15702339927370149
+  },
+  "comparison_with_logistic": {
+    "auc_diff": 0.0022402782691048895,
+    "logloss_diff": -0.026559473197571903,
+    "predicted_ctr_gap": 0.0006339425497055018,
+    "logistic_predicted_ctr_gap": 0.087417219458848,
+    "auc_higher_than_logistic": "是",
+    "logloss_lower_than_logistic": "是"
+  },
+  "comparison_with_lightgbm": {
+    "auc_diff": -0.0020862960952940934,
+    "logloss_diff": 0.0008347015045583328,
+    "predicted_ctr_gap": 0.0006339425497055018,
+    "lightgbm_predicted_ctr_gap": 5.539927370148967e-05,
+    "auc_higher_than_lightgbm": "否",
+    "logloss_lower_than_lightgbm": "否"
+  }
+}

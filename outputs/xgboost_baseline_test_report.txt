@@ -1,0 +1,78 @@
+百度 CTR 项目 — XGBoost 基线报告
+======================================================================
+
+当前模式：TEST_MODE=True
+
+【模型定义】
+  XGBClassifier(objective='binary:logistic', n_estimators=1500,
+                learning_rate=0.05, max_depth=6, min_child_weight=10,
+                subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+                tree_method='hist', max_bin=256, random_state=42)
+
+【抽样配置】
+  目标 train 行数：500,000
+  目标 valid 行数：200,000
+  random_state：42
+  batch_size：200,000
+
+【样本规模】
+  训练样本数：500,000
+  验证样本数：200,000
+  train 日期覆盖：2014-10-21 ~ 2014-10-28
+  valid 日期覆盖：2014-10-29 ~ 2014-10-29
+
+【特征配置】
+  最终特征数量：33
+  特征列表：['app_category_exposure_percentile', 'app_category_freq', 'app_category_hist_clicks', 'app_category_hist_ctr', 'app_category_hist_impressions', 'app_category_te', 'app_id_exposure_percentile', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_ctr', 'app_id_hist_impressions', 'app_id_te', 'device_model_exposure_percentile', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_ctr', 'device_model_hist_impressions', 'device_model_te', 'is_weekend', 'site_category_exposure_percentile', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_ctr', 'site_category_hist_impressions', 'site_category_te', 'site_id_exposure_percentile', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_ctr', 'site_id_hist_impressions', 'site_id_te', 'hour_sin', 'hour_cos']
+
+【验证集指标】
+  best_iteration：8
+  ROC-AUC：0.732994
+  LogLoss：0.408518
+  Accuracy：0.843605
+  Precision：0.000000
+  Recall：0.000000
+  F1：0.000000
+  valid 实际 CTR：0.156395
+  valid 平均预测 CTR：0.167392
+  0.5 阈值预测点击比例：0.000000
+
+【与逻辑回归正式基线对比】
+  逻辑回归 ROC-AUC：0.731079
+  XGBoost ROC-AUC：0.732994（差异 +0.001915）
+  AUC 是否更高：是
+
+  逻辑回归 LogLoss：0.412632
+  XGBoost LogLoss：0.408518（差异 -0.004113）
+  LogLoss 是否更低：是
+
+【与 LightGBM 正式基线对比】
+  LightGBM ROC-AUC：0.735406
+  XGBoost ROC-AUC：0.732994（差异 -0.002411）
+  AUC 是否更高：否
+
+  LightGBM LogLoss：0.385237
+  XGBoost LogLoss：0.408518（差异 +0.023281）
+  LogLoss 是否更低：否
+
+【特征重要性 Top 15（gain）】
+  说明：重要性仅代表模型中的预测贡献，不能解释为因果关系。
+  1. site_id_te: gain=622.5602, weight=238
+  2. site_id_hist_ctr: gain=499.5652, weight=170
+  3. app_id_te: gain=347.2645, weight=198
+  4. app_id_hist_ctr: gain=175.1976, weight=152
+  5. site_id_freq: gain=110.1871, weight=187
+  6. site_id_hist_clicks: gain=92.6568, weight=81
+  7. site_category_freq: gain=74.8798, weight=34
+  8. site_category_exposure_percentile: gain=70.5071, weight=30
+  9. app_id_exposure_percentile: gain=68.3445, weight=105
+  10. app_category_freq: gain=63.3806, weight=52
+  11. device_model_te: gain=60.0142, weight=274
+  12. app_id_hist_impressions: gain=59.6921, weight=27
+  13. app_id_freq: gain=49.8088, weight=160
+  14. site_id_hist_impressions: gain=49.0101, weight=47
+  15. site_id_exposure_percentile: gain=47.0128, weight=79
+
+【说明】
+  - holdout 尚未使用
+  - 测试模式结果仅用于链路检查，不能作为最终结论
