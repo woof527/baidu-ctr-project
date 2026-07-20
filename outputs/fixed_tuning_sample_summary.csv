@@ -1,0 +1,3 @@
+split,target_rows,actual_rows,input_file_count,output_file_count,date_min,date_max,negative_rows,positive_rows,ctr,feature_count,id_sha256,nan_count,inf_count,validation_status
+train,2000000,2000000,162,8,2014-10-21,2014-10-28,1658145,341855,0.1709275,33,f1922d6aeff411cf2a6c8e0b697c894b9446f24e67bbafa0bb29dfbe878e94f1,0,0,passed
+valid,500000,500000,21,2,2014-10-29,2014-10-29,421516,78484,0.156968,33,46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f,0,0,passed

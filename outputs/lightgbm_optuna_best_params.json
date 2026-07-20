@@ -1,0 +1,32 @@
+{
+  "study_name": "baidu_ctr_lightgbm_fixed_sample_v1",
+  "best_trial_number": 8,
+  "objective_name": "validation_log_loss",
+  "best_validation_log_loss": 0.38483124520713236,
+  "best_params": {
+    "max_depth": 5,
+    "learning_rate": 0.10342099303484481,
+    "num_leaves": 29,
+    "min_child_samples": 143,
+    "subsample": 0.9313811040057837,
+    "colsample_bytree": 0.7222133955202271,
+    "reg_alpha": 1.683416412018213e-05,
+    "reg_lambda": 1.1036250149900698e-07,
+    "min_split_gain": 0.17262068517511872
+  },
+  "best_trial_user_attributes": {
+    "best_iteration": 208,
+    "calibration_gap": 0.003799474256390767,
+    "roc_auc": 0.7370765023471366,
+    "training_seconds": 9.073675167019246,
+    "valid_actual_ctr": 0.156968,
+    "valid_mean_predicted_ctr": 0.16076747425639076
+  },
+  "total_trials": 20,
+  "complete_trials": 20,
+  "failed_trials": 0,
+  "pruned_trials": 0,
+  "train_id_sha256": "f1922d6aeff411cf2a6c8e0b697c894b9446f24e67bbafa0bb29dfbe878e94f1",
+  "valid_id_sha256": "46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f",
+  "holdout_used": false
+}

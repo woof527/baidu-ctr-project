@@ -1,0 +1,119 @@
+百度 CTR 项目 — 第 33 步 调优 LightGBM SHAP 特征解释报告
+========================================================================
+
+【1. SHAP 的作用】
+  SHAP 基于 Shapley 值，量化每个特征对单个预测的贡献，帮助理解模型依赖哪些信息做出点击概率判断。
+
+【2. 本次解释的模型】
+  models/tuned_lightgbm_optuna_model.joblib
+
+【3. 最佳 Optuna trial 编号】8
+
+【4. 最佳参数】
+  max_depth: 5
+  learning_rate: 0.10342099303484481
+  num_leaves: 29
+  min_child_samples: 143
+  subsample: 0.9313811040057837
+  colsample_bytree: 0.7222133955202271
+  reg_alpha: 1.683416412018213e-05
+  reg_lambda: 1.1036250149900698e-07
+  min_split_gain: 0.17262068517511872
+
+【5. 调优模型 valid 指标】
+  ROC-AUC：0.737077
+  LogLoss：0.384831
+  calibration_gap：0.003799
+
+【6. 数据范围】
+  使用固定 valid 样本，不是 holdout，也不是原始 test.csv。
+
+【7. 完整 valid 行数】500,000
+【8. SHAP 抽样行数】2,000
+【9. SHAP 抽样 CTR / 完整 valid CTR】0.151000 / 0.156968 (差异 0.005968)
+【10. 随机种子】42
+【11. SHAP / LightGBM 版本】0.51.0 / 4.6.0
+【12. 模型 best_iteration】208
+
+【13. SHAP 输出尺度】
+  本次解释 LightGBM raw score（log-odds 尺度），SHAP 正值表示推动点击预测升高，负值表示推动降低。
+  不能将 raw SHAP 值直接解释为概率百分点变化。
+
+【14. 加和一致性误差】
+  mean_absolute_additivity_error=4.434407e-08
+  max_absolute_additivity_error=6.672013e-07
+
+【15. 全局前 20 个重要特征】
+  site_id_te: mean_abs_shap=0.365246, mean_signed_shap=-0.092984
+  app_id_te: mean_abs_shap=0.277621, mean_signed_shap=-0.023704
+  site_id_hist_ctr: mean_abs_shap=0.131227, mean_signed_shap=0.012204
+  device_model_te: mean_abs_shap=0.120873, mean_signed_shap=0.008718
+  site_id_freq: mean_abs_shap=0.062149, mean_signed_shap=-0.005265
+  app_id_hist_ctr: mean_abs_shap=0.054096, mean_signed_shap=0.018298
+  app_id_freq: mean_abs_shap=0.039325, mean_signed_shap=-0.001218
+  app_id_exposure_percentile: mean_abs_shap=0.038602, mean_signed_shap=-0.014383
+  app_category_freq: mean_abs_shap=0.036961, mean_signed_shap=0.007558
+  hour_cos: mean_abs_shap=0.032342, mean_signed_shap=0.001825
+  device_model_freq: mean_abs_shap=0.030437, mean_signed_shap=0.005488
+  device_model_hist_ctr: mean_abs_shap=0.024102, mean_signed_shap=0.003885
+  site_category_hist_impressions: mean_abs_shap=0.023691, mean_signed_shap=-0.022172
+  site_id_hist_impressions: mean_abs_shap=0.023270, mean_signed_shap=-0.000881
+  site_id_exposure_percentile: mean_abs_shap=0.023103, mean_signed_shap=0.016744
+  hour_sin: mean_abs_shap=0.020114, mean_signed_shap=0.004906
+  app_category_te: mean_abs_shap=0.017302, mean_signed_shap=0.012369
+  app_id_hist_clicks: mean_abs_shap=0.016188, mean_signed_shap=-0.009932
+  device_model_exposure_percentile: mean_abs_shap=0.015486, mean_signed_shap=0.002016
+  site_category_freq: mean_abs_shap=0.015332, mean_signed_shap=0.003231
+
+【16. 特征家族排名】
+  target_encoding: 0.5405 (top=site_id_te)
+  historical_ctr: 0.1566 (top=site_id_hist_ctr)
+  frequency: 0.1262 (top=site_id_freq)
+  exposure_percentile: 0.0607 (top=app_id_exposure_percentile)
+  historical_impressions: 0.0466 (top=site_category_hist_impressions)
+  time: 0.0361 (top=hour_cos)
+  historical_clicks: 0.0332 (top=app_id_hist_clicks)
+
+【17. 业务实体排名】
+  site_id: 0.4215 (top=site_id_te)
+  app_id: 0.2990 (top=app_id_te)
+  device_model: 0.1409 (top=device_model_te)
+  app_category: 0.0578 (top=app_category_freq)
+  site_category: 0.0447 (top=site_category_hist_impressions)
+  time: 0.0361 (top=hour_cos)
+
+【18. 局部案例是否存在】
+  四类案例均存在
+
+【19. 局部案例主要贡献】
+  true_positive: row=315006, prob=0.925484
+    最重要正向：app_id_te (2.357637)
+    最重要负向：site_category_hist_impressions (-0.043771)
+  true_negative: row=70856, prob=0.000642
+    最重要正向：site_id_hist_clicks (0.035863)
+    最重要负向：app_id_te (-2.303157)
+  false_positive: row=447899, prob=0.832309
+    最重要正向：app_id_te (2.115885)
+    最重要负向：app_category_freq (-0.128081)
+  false_negative: row=131695, prob=0.000805
+    最重要正向：site_category_exposure_percentile (0.067794)
+    最重要负向：site_id_te (-3.267992)
+
+【20. 因果说明】
+  SHAP 解释代表模型依赖关系，不代表特征与点击之间存在因果关系。
+
+【21. 相关特征分摊】
+  高相关特征可能分摊 SHAP 重要性，单个特征贡献不应被过度解读。
+
+【22. TE 与历史 CTR】
+  Target Encoding 与 historical_ctr 等相关特征应结合特征家族/实体组解释。
+
+【23. holdout 尚未使用】是
+
+【24. 下一步建议】
+  建议继续开展概率校准与阈值分析，并在 holdout 上完成最终评估。
+
+当前模式：TEST_MODE=True（流程验证，非正式结论）
+valid_id_sha256：46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f
+原始 SHAP 形状：(2000, 33)
+规范化 SHAP 形状：(2000, 33)

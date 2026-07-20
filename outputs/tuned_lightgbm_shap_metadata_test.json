@@ -1,0 +1,218 @@
+{
+  "script_name": "scripts/33_explain_tuned_lightgbm_shap.py",
+  "created_at": "2026-07-19T12:12:12.751257+00:00",
+  "test_mode": true,
+  "shap_version": "0.51.0",
+  "lightgbm_version": "4.6.0",
+  "model_path": "models/tuned_lightgbm_optuna_model.joblib",
+  "source_optuna_metadata": "outputs/lightgbm_optuna_metadata.json",
+  "best_trial_number": 8,
+  "best_iteration": 208,
+  "feature_columns": [
+    "app_category_exposure_percentile",
+    "app_category_freq",
+    "app_category_hist_clicks",
+    "app_category_hist_ctr",
+    "app_category_hist_impressions",
+    "app_category_te",
+    "app_id_exposure_percentile",
+    "app_id_freq",
+    "app_id_hist_clicks",
+    "app_id_hist_ctr",
+    "app_id_hist_impressions",
+    "app_id_te",
+    "device_model_exposure_percentile",
+    "device_model_freq",
+    "device_model_hist_clicks",
+    "device_model_hist_ctr",
+    "device_model_hist_impressions",
+    "device_model_te",
+    "is_weekend",
+    "site_category_exposure_percentile",
+    "site_category_freq",
+    "site_category_hist_clicks",
+    "site_category_hist_ctr",
+    "site_category_hist_impressions",
+    "site_category_te",
+    "site_id_exposure_percentile",
+    "site_id_freq",
+    "site_id_hist_clicks",
+    "site_id_hist_ctr",
+    "site_id_hist_impressions",
+    "site_id_te",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "feature_count": 33,
+  "full_valid_rows": 500000,
+  "full_valid_ctr": 0.156968,
+  "shap_sample_rows": 2000,
+  "shap_sample_ctr": 0.151,
+  "shap_sample_random_state": 42,
+  "sample_indices_sha256": "192344abf0be32cf47e4b9034f25edc1399aa81f29801ae1820bfedd5fd133cd",
+  "original_shap_shape": [
+    2000,
+    33
+  ],
+  "normalized_shap_shape": [
+    2000,
+    33
+  ],
+  "explained_class_index": 1,
+  "model_output_scale": "raw",
+  "mean_absolute_additivity_error": 4.4344066513721814e-08,
+  "max_absolute_additivity_error": 6.672013403985488e-07,
+  "top_features": [
+    {
+      "feature": "site_id_te",
+      "mean_abs_shap": 0.36524632573127747,
+      "mean_signed_shap": -0.09298351407051086,
+      "importance_percent": 0.2502966643457981
+    },
+    {
+      "feature": "app_id_te",
+      "mean_abs_shap": 0.27762076258659363,
+      "mean_signed_shap": -0.023703673854470253,
+      "importance_percent": 0.1902484595551693
+    },
+    {
+      "feature": "site_id_hist_ctr",
+      "mean_abs_shap": 0.13122650980949402,
+      "mean_signed_shap": 0.012204124592244625,
+      "importance_percent": 0.0899271405764201
+    },
+    {
+      "feature": "device_model_te",
+      "mean_abs_shap": 0.12087327986955643,
+      "mean_signed_shap": 0.008717849850654602,
+      "importance_percent": 0.0828322603911558
+    },
+    {
+      "feature": "site_id_freq",
+      "mean_abs_shap": 0.062148790806531906,
+      "mean_signed_shap": -0.005264862906187773,
+      "importance_percent": 0.04258943604937037
+    },
+    {
+      "feature": "app_id_hist_ctr",
+      "mean_abs_shap": 0.0540960393846035,
+      "mean_signed_shap": 0.018297506496310234,
+      "importance_percent": 0.037071031954054486
+    },
+    {
+      "feature": "app_id_freq",
+      "mean_abs_shap": 0.0393245704472065,
+      "mean_signed_shap": -0.0012179686455056071,
+      "importance_percent": 0.026948412937653432
+    },
+    {
+      "feature": "app_id_exposure_percentile",
+      "mean_abs_shap": 0.03860201686620712,
+      "mean_signed_shap": -0.014382686465978622,
+      "importance_percent": 0.02645326010956362
+    },
+    {
+      "feature": "app_category_freq",
+      "mean_abs_shap": 0.03696116805076599,
+      "mean_signed_shap": 0.007557534147053957,
+      "importance_percent": 0.025328816258202793
+    },
+    {
+      "feature": "hour_cos",
+      "mean_abs_shap": 0.03234221413731575,
+      "mean_signed_shap": 0.001825031591579318,
+      "importance_percent": 0.022163531145508328
+    }
+  ],
+  "feature_family_ranking": [
+    {
+      "feature_family": "target_encoding",
+      "group_importance_percent": 0.5405405555052537,
+      "top_feature": "site_id_te"
+    },
+    {
+      "feature_family": "historical_ctr",
+      "group_importance_percent": 0.15664423329596894,
+      "top_feature": "site_id_hist_ctr"
+    },
+    {
+      "feature_family": "frequency",
+      "group_importance_percent": 0.12623119933920338,
+      "top_feature": "site_id_freq"
+    },
+    {
+      "feature_family": "exposure_percentile",
+      "group_importance_percent": 0.06071866915229613,
+      "top_feature": "app_id_exposure_percentile"
+    },
+    {
+      "feature_family": "historical_impressions",
+      "group_importance_percent": 0.04663940118947479,
+      "top_feature": "site_category_hist_impressions"
+    },
+    {
+      "feature_family": "time",
+      "group_importance_percent": 0.03606604697762116,
+      "top_feature": "hour_cos"
+    },
+    {
+      "feature_family": "historical_clicks",
+      "group_importance_percent": 0.033159894540181895,
+      "top_feature": "app_id_hist_clicks"
+    }
+  ],
+  "entity_ranking": [
+    {
+      "entity": "site_id",
+      "entity_importance_percent": 0.4215219786180009,
+      "top_feature": "site_id_te"
+    },
+    {
+      "entity": "app_id",
+      "entity_importance_percent": 0.2989812308308733,
+      "top_feature": "app_id_te"
+    },
+    {
+      "entity": "device_model",
+      "entity_importance_percent": 0.14092228998678308,
+      "top_feature": "device_model_te"
+    },
+    {
+      "entity": "app_category",
+      "entity_importance_percent": 0.05777091016764405,
+      "top_feature": "app_category_freq"
+    },
+    {
+      "entity": "site_category",
+      "entity_importance_percent": 0.04473754341907749,
+      "top_feature": "site_category_hist_impressions"
+    },
+    {
+      "entity": "time",
+      "entity_importance_percent": 0.03606604697762116,
+      "top_feature": "hour_cos"
+    }
+  ],
+  "local_case_types": {
+    "found": [
+      "true_positive",
+      "true_negative",
+      "false_positive",
+      "false_negative"
+    ],
+    "missing": []
+  },
+  "output_paths": {
+    "global_importance_csv": "outputs/shap/tuned_lightgbm_shap_global_importance_test.csv",
+    "family_importance_csv": "outputs/shap/tuned_lightgbm_shap_family_importance_test.csv",
+    "entity_importance_csv": "outputs/shap/tuned_lightgbm_shap_entity_importance_test.csv",
+    "local_contributions_csv": "outputs/shap/tuned_lightgbm_shap_local_contributions_test.csv",
+    "sample_rows_parquet": "outputs/shap/tuned_lightgbm_shap_sample_rows_test.parquet",
+    "shap_values_npz": "outputs/shap/tuned_lightgbm_shap_values_test.npz",
+    "report_txt": "outputs/tuned_lightgbm_shap_report_test.txt",
+    "plots_dir": "outputs/shap/plots_test"
+  },
+  "valid_id_sha256": "46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f",
+  "holdout_used": false,
+  "validation_passed": true
+}

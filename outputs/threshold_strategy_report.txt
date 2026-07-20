@@ -1,0 +1,59 @@
+百度 CTR 项目 — 第 35 步 阈值与投放覆盖率策略分析报告
+========================================================================
+
+【1. 使用的概率方法】isotonic
+
+【2. 为什么使用第 34 步 evaluation 预测】
+  最终校准器已在完整 valid 上重拟合，不能再在同一 valid 上评价。
+  本步骤仅使用第 34 步独立 development evaluation 子集上的预测概率。
+
+【3. 分析样本】行数=200,000，actual CTR=0.156970
+
+【4. 区分能力】ROC-AUC=0.735297，Average Precision=0.331623
+
+【5. 阈值与投放覆盖率关系】
+  阈值越低，coverage 越高，能覆盖更多潜在点击，但目标人群 CTR 通常下降。
+
+【6. Precision 与 Recall 权衡】
+  提高阈值可提升 precision、降低 coverage；降低阈值则相反。
+
+【7. 最大 F1 阈值】
+  threshold=0.210000, F1=0.390599, precision=0.301241, recall=0.555329
+
+【8. Recall >= 80% 候选点】
+  feasible=True, threshold=0.12, precision=0.24056938827696592, recall=0.8091036503790533
+
+【9. Recall >= 90% 候选点】
+  feasible=True, threshold=0.09, precision=0.21382017589859612, recall=0.9091546155316302
+
+【10. Top 1% / 5% / 10% / 20% 指标】
+  Top 1%: CTR=0.602500, lift=3.8383, capture=0.0384
+  Top 5%: CTR=0.455100, lift=2.8993, capture=0.1450
+  Top 10%: CTR=0.383500, lift=2.4431, capture=0.2443
+  Top 20%: CTR=0.332150, lift=2.1160, capture=0.4232
+
+【11. CTR 最高的十分位】decile=1, CTR=0.383500, lift=2.4431
+
+【12. 高分区域是否集中点击】
+  decile 1（最高分 10%）点击占比=0.2443，CTR=0.383500
+
+【13. 为什么 threshold=0.5 不适合当前 CTR 场景】
+  在 0.5 阈值下 coverage=0.0161，recall=0.0579，precision=0.5641，对低 CTR 广告场景过于保守，会漏掉大量点击。
+
+【14. 为什么 Top-K 更适合预算控制】
+  Top-K 直接按预算/容量选择最高概率流量，比固定 0.5 更符合投放约束。
+
+【15. 不存在唯一最佳阈值】
+  追求更多点击覆盖应使用较低阈值；追求更高目标 CTR 应使用较高阈值。
+
+【16. 成本假设】当前分析默认每条曝光成本相同。
+
+【17. 缺少的数据】缺少广告收益、CPC、CPA、预算与库存约束。
+
+【18. Lift 不是利润】incremental_clicks_vs_random 仅表示相对随机投放的额外点击估计。
+
+【19. holdout 尚未使用】是
+
+【20. 下一步】更新 README、技术报告和本周周报。
+
+当前模式：TEST_MODE=False

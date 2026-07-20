@@ -1,0 +1,63 @@
+百度 CTR 项目 — 固定共享样本三模型基线报告
+======================================================================
+
+当前模式：TEST_MODE=False
+
+【为什么重新训练】
+  第 26—28 步原始基线使用了不同训练口径（逻辑回归全量、树模型抽样）。
+  第 31 步在完全相同的固定样本上复跑三种模型，实现公平比较。
+
+【固定样本说明】
+  三种模型使用同一批固定 train / valid 样本、相同 click 标签、
+  相同 feature_columns 与相同 valid id 顺序。
+  train 行数：2,000,000
+  valid 行数：500,000
+  特征数量：33
+
+【SHA256 指纹】
+  train_id_sha256：f1922d6aeff411cf2a6c8e0b697c894b9446f24e67bbafa0bb29dfbe878e94f1
+  valid_id_sha256：46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f
+
+【模型参数来源】
+  Logistic Regression：scripts/26_train_logistic_baseline.py
+  LightGBM：scripts/27_train_lightgbm_baseline.py
+  XGBoost：scripts/28_train_xgboost_baseline.py
+
+【本次固定样本指标】
+  Logistic Regression:
+    ROC-AUC：0.702093
+    LogLoss：0.409753
+    calibration_gap：0.028553
+    best_iteration：None
+    training_seconds：1.23
+
+  LightGBM:
+    ROC-AUC：0.735406
+    LogLoss：0.385237
+    calibration_gap：0.000055
+    best_iteration：376
+    training_seconds：13.10
+
+  XGBoost:
+    ROC-AUC：0.733319
+    LogLoss：0.386072
+    calibration_gap：0.000634
+    best_iteration：125
+    training_seconds：9.80
+
+【当前表现最好模型】LightGBM
+
+【与第 26—29 步原始基线区别】
+  原始逻辑回归使用全量 train（约 3237 万行）与全量 valid（约 383 万行）。
+  原始 LightGBM / XGBoost 使用 200 万 / 50 万随机抽样，且与本次固定 id 顺序不同。
+  因此原始基线结果不能与本次固定样本结果直接视为同一口径。
+
+【原始基线 valid 指标参考】
+  Logistic Regression: AUC=0.731078941430253, LogLoss=0.4126315426040813
+  LightGBM: AUC=0.735405515794652, LogLoss=0.38523736790195107
+  XGBoost: AUC=0.7333192196993579, LogLoss=0.3860720694065094
+
+【说明】
+  - 本次属于固定样本公平比较
+  - holdout 尚未使用
+  - 下一步建议使用固定样本 LightGBM 作为 Optuna 调优基线

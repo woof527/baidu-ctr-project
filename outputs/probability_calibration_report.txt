@@ -1,0 +1,81 @@
+百度 CTR 项目 — 第 34 步 调优 LightGBM 概率校准报告
+========================================================================
+
+【1. 概率校准是什么】
+  概率校准调整模型输出，使预测概率更接近真实点击发生率。
+
+【2. 为什么调优模型需要校准】
+  树模型优化 LogLoss / AUC 时，概率绝对值可能偏离真实 CTR，影响阈值决策与投放覆盖率分析。
+
+【3. 原始调优模型 valid 指标】
+  AUC=0.737077
+  LogLoss=0.384831
+  calibration_gap=0.003799
+
+【4. 为什么不能在同一批数据上拟合并评价】
+  校准器若在 evaluation 标签上拟合会造成信息泄露；因此仅在 calibration 上拟合，在 evaluation 上比较方法。
+
+【5. valid 拆分方法】
+  train_test_split(stratify=click, train_size=0.6, random_state=42)
+
+【6. 拆分规模与 CTR】
+  总 valid 行数：500,000
+  calibration 行数：300,000，CTR=0.156967
+  evaluation 行数：200,000，CTR=0.156970
+  随机种子：42
+
+【7. Sigmoid 方法】
+  将 clipped 概率转 logit，再用 LogisticRegression 在 calibration 上拟合。
+
+【8. Isotonic 方法】
+  使用 IsotonicRegression 在 calibration 原始概率与 click 上拟合单调映射。
+
+【9. 三种方法 evaluation 指标】
+  uncalibrated:
+    LogLoss=0.385643
+    Brier=0.119355
+    ECE=0.006244
+    calibration_gap=0.003744
+    AUC=0.735183
+
+  sigmoid:
+    LogLoss=0.385587
+    Brier=0.119332
+    ECE=0.004884
+    calibration_gap=0.000079
+    AUC=0.735183
+
+  isotonic:
+    LogLoss=0.385278
+    Brier=0.119254
+    ECE=0.004339
+    calibration_gap=0.000063
+    AUC=0.735297
+
+【10. 最佳开发阶段方法】isotonic
+【11. 选择原因】按优先级 ['log_loss', 'brier_score', 'expected_calibration_error', 'calibration_gap'] 选择 isotonic；LogLoss 改善；Brier Score 改善；ECE 改善；calibration_gap 改善
+
+【12. LogLoss 是否改善】是
+【13. Brier Score 是否改善】是
+【14. ECE 是否改善】是
+【15. calibration_gap 是否改善】是
+【16. AUC 是否基本保持】best=0.735297, raw=0.735183
+
+【17. 指标取舍说明】
+  若 LogLoss 改善但 AUC 略降，或 ECE 改善但 Brier 略升，本报告按预设优先级如实记录，不隐瞒取舍。
+
+【18. 最终校准器】已使用完整 working valid (500,000 行) 重新拟合
+  方法：isotonic
+  路径：models/tuned_lightgbm_selected_calibrator.joblib
+
+【19. 最终校准器尚未在 holdout 上评价】是
+
+【20. 开发阶段限制】
+  LightGBM 超参数与 Optuna 选择已使用完整 valid；本次 evaluation 仅用于校准方法比较，不是最终独立测试。
+
+【21. holdout 尚未使用】是
+
+【22. 下一步建议】
+  建议继续开展阈值、Lift 和投放覆盖率分析，并在 holdout 上完成最终评估。
+
+当前模式：TEST_MODE=False

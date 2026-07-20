@@ -1,0 +1,90 @@
+百度 CTR 项目 — 第 32 步 LightGBM Optuna 调优报告
+========================================================================
+
+【1. 第 32 步目的】
+  在固定共享 train / valid 样本上使用 Optuna 对 LightGBM 超参数进行调优，
+  并以第 31 步固定样本 LightGBM 作为调优前基线。
+
+【2. 为什么使用固定共享样本】
+  保证每次 trial 与基线复训使用完全相同的样本、标签、特征列与 valid id 顺序，
+  使调优比较公平且可复现。
+
+【3. 为什么主要优化 LogLoss】
+  CTR 预测更关注概率校准与排序稳定性，LogLoss 直接衡量概率质量；
+  Accuracy 受阈值影响大，不适合作为本次调优主目标。
+
+【4. train / valid 行数】train=100,000，valid=50,000
+【5. 特征数量】33
+
+【6. SHA256 指纹】
+  train_id_sha256：f95f9a9bc21892497bda02b468010c9f7c32a598a85f977a51a97c328887da17
+  valid_id_sha256：3ec37858b692dc5954db3ba8670569398c7b9b93a3cfcc131d179a81d76f1457
+
+【7. Optuna 采样器与随机种子】
+  sampler=TPESampler，seed=42
+
+【8. Study 名称与数据库位置】
+  study_name=baidu_ctr_lightgbm_fixed_sample_test_v1
+  storage=sqlite:///outputs/optuna/lightgbm_fixed_sample_test_study.db
+
+【9. 本次新增 trial 数】3
+【10. 累计 trial 数】3
+
+【11. 参数搜索空间】
+  learning_rate: [0.02, 0.15], log=True
+  max_depth: [5, 12]
+  num_leaves: [20, min(128, 2**max_depth)]
+  min_child_samples: [20, 300], log=True
+  subsample: [0.70, 1.00]
+  colsample_bytree: [0.70, 1.00]
+  reg_alpha: [1e-8, 10.0], log=True
+  reg_lambda: [1e-8, 10.0], log=True
+  min_split_gain: [0.0, 0.2]
+  固定参数：objective=binary, n_estimators=2000, subsample_freq=1, random_state=42
+
+【12. 最佳 trial 编号】2
+【13. 最佳参数】
+  max_depth: 8
+  learning_rate: 0.03596444270828742
+  num_leaves: 86
+  min_child_samples: 29
+  subsample: 0.7876433945605654
+  colsample_bytree: 0.8099085529881075
+  reg_alpha: 0.00012724181576752517
+  reg_lambda: 0.11656915613247415
+  min_split_gain: 0.03993475643167195
+
+【14. 最佳模型指标】
+  ROC-AUC：0.713347
+  LogLoss：0.398903
+  calibration_gap：0.004517
+  best_iteration：144
+  training_seconds：2.72
+
+【15. 固定样本基线指标（第 31 步 LightGBM）】
+  ROC-AUC：0.735406
+  LogLoss：0.385237
+  calibration_gap：0.000055
+  best_iteration：376.0
+  training_seconds：13.10
+
+【16. 调优前后差异】
+  AUC 绝对提升：-0.022059
+  AUC 相对提升(%)：-2.9995
+  LogLoss 绝对下降：-0.013666
+  LogLoss 相对下降(%)：-3.5474
+  calibration_gap 变化：0.004461
+
+【17. 是否真正改善 LogLoss】否
+【18. AUC 是否提升】否
+【19. calibration_gap 是否改善】否
+
+【20. 失败 trial 数量】0
+【21. holdout 尚未使用】是
+【22. 当前结论只基于 valid，不是最终 holdout 结论】是
+
+当前模式：TEST_MODE=True（测试结果不能作为正式结论）
+特征列数量：33
+最佳 trial user_attrs：{"best_iteration": 144, "calibration_gap": 0.004516762333513946, "roc_auc": 0.7133470120075274, "training_seconds": 2.7025484170007985, "valid_actual_ctr": 0.15868, "valid_mean_predicted_ctr": 0.16319676233351393}
+COMPLETE trial 数：3
+PRUNED trial 数：0

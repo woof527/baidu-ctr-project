@@ -1,0 +1,59 @@
+百度 CTR 项目 — 固定 LightGBM 调优样本报告
+======================================================================
+
+当前模式：TEST_MODE=False
+
+【脚本目的】
+  构建固定、可复现的 LightGBM 调优 train / valid 样本，
+  供基线复跑、Optuna 每个 trial 和调优模型比较统一使用。
+
+【数据来源】
+  train：data/features/target_encoded/train
+  valid：data/features/target_encoded/valid
+
+【固定样本规模】
+  train 目标行数：2,000,000，实际：2,000,000
+  valid 目标行数：500,000，实际：500,000
+
+【为何保存固定样本】
+  避免不同实验因重新随机抽样导致结果不可比。
+
+【随机种子】
+  RANDOM_STATE = 42
+
+【特征数量】
+  33 个（与 scripts/27_train_lightgbm_baseline.py 一致）
+
+【特征处理规则】
+  - 对 _freq / _hist_impressions / _hist_clicks 执行 log1p
+  - 由 hour_of_day 生成 hour_sin / hour_cos
+  - NaN / inf 按第 27 步规则置 0
+  - 模型特征保存为 float32
+
+【日期范围】
+  train：2014-10-21 ~ 2014-10-28
+  valid：2014-10-29 ~ 2014-10-29
+
+【CTR 与标签分布】
+  train CTR：0.170928 (0=1,658,145, 1=341,855)
+  valid CTR：0.156968 (0=421,516, 1=78,484)
+
+【SHA256 指纹】
+  train_id_sha256：f1922d6aeff411cf2a6c8e0b697c894b9446f24e67bbafa0bb29dfbe878e94f1
+  valid_id_sha256：46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f
+
+【验收结果】
+  - train / valid 行数符合目标
+  - click 仅含 0 / 1，且无缺失
+  - id 无缺失
+  - 模型特征无 NaN / inf，dtype=float32
+  - 特征名称与顺序与第 27 步一致
+  - train 最大日期早于 valid 最小日期，无日期重叠
+  - 输出文件 part-0000 起连续编号
+  - SHA256 长度均为 64
+
+【说明】
+  - 未读取 holdout
+  - 后续所有 Optuna trial 必须使用本次固定样本
+  - 旧 LightGBM 基线与新固定样本调优结果不能直接视为完全相同抽样口径，
+    因此下一步要在固定样本上重新跑一次基线参数
