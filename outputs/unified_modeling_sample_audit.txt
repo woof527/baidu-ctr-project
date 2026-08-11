@@ -1,0 +1,37 @@
+========================================================================
+百度 CTR 项目 — 第 37 步 统一建模样本构建
+时间（UTC）：2026-08-09T11:00:19.433074+00:00
+TEST_MODE = False
+说明：独立于旧 Step 30，不要求行一致；旧 Step 30 数据不修改。
+
+数据来源：data/features/target_encoded/train / data/features/target_encoded/valid
+categorical (24)：['site_id', 'site_domain', 'site_category', 'app_id', 'app_domain', 'app_category', 'device_id', 'device_ip', 'device_model', 'banner_pos', 'device_type', 'device_conn_type', 'C1', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21', 'banner_device_cross', 'hour_banner_cross', 'site_device_cross']
+numerical (33)：['app_category_exposure_percentile', 'app_category_freq', 'app_category_hist_clicks', 'app_category_hist_ctr', 'app_category_hist_impressions', 'app_category_te', 'app_id_exposure_percentile', 'app_id_freq', 'app_id_hist_clicks', 'app_id_hist_ctr', 'app_id_hist_impressions', 'app_id_te', 'device_model_exposure_percentile', 'device_model_freq', 'device_model_hist_clicks', 'device_model_hist_ctr', 'device_model_hist_impressions', 'device_model_te', 'hour_cos', 'hour_sin', 'is_weekend', 'site_category_exposure_percentile', 'site_category_freq', 'site_category_hist_clicks', 'site_category_hist_ctr', 'site_category_hist_impressions', 'site_category_te', 'site_id_exposure_percentile', 'site_id_freq', 'site_id_hist_clicks', 'site_id_hist_ctr', 'site_id_hist_impressions', 'site_id_te']
+
+Categorical audit:
+  site_id: train_u=3,030, valid_u=1,963, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.1066%
+  site_domain: train_u=3,543, valid_u=2,075, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0698%
+  site_category: train_u=21, valid_u=19, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  app_id: train_u=3,909, valid_u=1,686, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.2582%
+  app_domain: train_u=243, valid_u=106, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0114%
+  app_category: train_u=27, valid_u=25, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  device_id: train_u=273,466, valid_u=76,251, tr_miss=0.0000%, va_miss=0.0000%, OOV=17.0658%
+  device_ip: train_u=929,273, valid_u=261,090, tr_miss=0.0000%, va_miss=0.0000%, OOV=51.7002%
+  device_model: train_u=5,674, valid_u=4,263, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0662%
+  banner_pos: train_u=7, valid_u=7, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  device_type: train_u=5, valid_u=4, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  device_conn_type: train_u=4, valid_u=4, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C1: train_u=7, valid_u=7, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C14: train_u=2,035, valid_u=1,124, tr_miss=0.0000%, va_miss=0.0000%, OOV=23.4542%
+  C15: train_u=8, valid_u=8, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C16: train_u=9, valid_u=9, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C17: train_u=363, valid_u=212, tr_miss=0.0000%, va_miss=0.0000%, OOV=23.3794%
+  C18: train_u=4, valid_u=4, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C19: train_u=61, valid_u=46, tr_miss=0.0000%, va_miss=0.0000%, OOV=1.5798%
+  C20: train_u=165, valid_u=158, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  C21: train_u=52, valid_u=36, tr_miss=0.0000%, va_miss=0.0000%, OOV=1.3090%
+  banner_device_cross: train_u=14, valid_u=13, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+  hour_banner_cross: train_u=164, valid_u=138, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0006%
+  site_device_cross: train_u=27, valid_u=24, tr_miss=0.0000%, va_miss=0.0000%, OOV=0.0000%
+
+Metadata: outputs/unified_modeling_sample_metadata.json

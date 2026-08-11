@@ -1,0 +1,45 @@
+百度 CTR 项目 — 统一样本 LightGBM 基线对比报告
+========================================================================
+
+【Model A】LightGBM_Numerical33
+  AUC：0.734138
+  LogLoss：0.385981
+  Brier：0.119349
+  Calibration Gap：0.004808
+  Best Iteration：178
+
+【Model B】LightGBM_Unified
+  AUC：0.744509
+  LogLoss：0.381338
+  Brier：0.117889
+  Calibration Gap：0.000886
+  Best Iteration：324
+
+【Model A vs Model B】
+  AUC 变化：+0.010371
+  LogLoss 变化：-0.004643
+  Brier 变化：-0.001461
+  Calibration Gap 变化：-0.003922
+
+【加入 raw categorical 后是否改善】
+  AUC 提高：是
+  LogLoss 降低：是
+  Brier 改善：是
+  Calibration 改善：是
+
+【BETTER_MODEL】LightGBM_Unified
+
+【Model B categorical 使用】
+  ['site_id', 'site_domain', 'site_category', 'app_id', 'app_domain', 'app_category', 'device_model', 'banner_pos', 'device_type', 'device_conn_type', 'C1', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21', 'banner_device_cross', 'hour_banner_cross', 'site_device_cross']
+
+【排除的高基数字段】
+  ['device_id', 'device_ip']
+
+【Step 32 历史参考（旧 Step 30 固定样本，仅供参考）】
+  AUC = 0.737077
+  LogLoss = 0.384831
+
+说明：旧 Step 32 与本次 unified sample 不是完全相同行集合，
+差异不应全部解释为模型性能变化。
+
+HOLDOUT_USED = False

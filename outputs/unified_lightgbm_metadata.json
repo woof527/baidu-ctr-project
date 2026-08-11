@@ -1,0 +1,250 @@
+{
+  "script_name": "scripts/38_train_unified_lightgbm_baselines.py",
+  "created_at": "2026-08-09T13:22:36.788521+00:00",
+  "test_mode": false,
+  "train_rows": 2000000,
+  "valid_rows": 500000,
+  "train_date_range": [
+    "2014-10-21",
+    "2014-10-28"
+  ],
+  "valid_date_range": [
+    "2014-10-29",
+    "2014-10-29"
+  ],
+  "numerical_features": [
+    "app_category_exposure_percentile",
+    "app_category_freq",
+    "app_category_hist_clicks",
+    "app_category_hist_ctr",
+    "app_category_hist_impressions",
+    "app_category_te",
+    "app_id_exposure_percentile",
+    "app_id_freq",
+    "app_id_hist_clicks",
+    "app_id_hist_ctr",
+    "app_id_hist_impressions",
+    "app_id_te",
+    "device_model_exposure_percentile",
+    "device_model_freq",
+    "device_model_hist_clicks",
+    "device_model_hist_ctr",
+    "device_model_hist_impressions",
+    "device_model_te",
+    "hour_cos",
+    "hour_sin",
+    "is_weekend",
+    "site_category_exposure_percentile",
+    "site_category_freq",
+    "site_category_hist_clicks",
+    "site_category_hist_ctr",
+    "site_category_hist_impressions",
+    "site_category_te",
+    "site_id_exposure_percentile",
+    "site_id_freq",
+    "site_id_hist_clicks",
+    "site_id_hist_ctr",
+    "site_id_hist_impressions",
+    "site_id_te"
+  ],
+  "log1p_columns": [
+    "app_category_freq",
+    "app_category_hist_clicks",
+    "app_category_hist_impressions",
+    "app_id_freq",
+    "app_id_hist_clicks",
+    "app_id_hist_impressions",
+    "device_model_freq",
+    "device_model_hist_clicks",
+    "device_model_hist_impressions",
+    "site_category_freq",
+    "site_category_hist_clicks",
+    "site_category_hist_impressions",
+    "site_id_freq",
+    "site_id_hist_clicks",
+    "site_id_hist_impressions"
+  ],
+  "categorical_features_used": [
+    "site_id",
+    "site_domain",
+    "site_category",
+    "app_id",
+    "app_domain",
+    "app_category",
+    "device_model",
+    "banner_pos",
+    "device_type",
+    "device_conn_type",
+    "C1",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C18",
+    "C19",
+    "C20",
+    "C21",
+    "banner_device_cross",
+    "hour_banner_cross",
+    "site_device_cross"
+  ],
+  "excluded_high_cardinality_features": [
+    "device_id",
+    "device_ip"
+  ],
+  "parameter_source": "Step32_Optuna_best_trial_8",
+  "step32_best_params": {
+    "max_depth": 5,
+    "learning_rate": 0.10342099303484481,
+    "num_leaves": 29,
+    "min_child_samples": 143,
+    "subsample": 0.9313811040057837,
+    "colsample_bytree": 0.7222133955202271,
+    "reg_alpha": 1.683416412018213e-05,
+    "reg_lambda": 1.1036250149900698e-07,
+    "min_split_gain": 0.17262068517511872
+  },
+  "random_seed": 42,
+  "best_iteration_model_a": 178,
+  "best_iteration_model_b": 324,
+  "model_a_metrics": {
+    "model": "LightGBM_Numerical33",
+    "train_rows": 2000000,
+    "valid_rows": 500000,
+    "feature_count": 33,
+    "roc_auc": 0.7341377453403659,
+    "log_loss": 0.38598102223627795,
+    "brier_score": 0.11934942842333957,
+    "valid_actual_ctr": 0.156968,
+    "valid_mean_predicted_ctr": 0.16177601551201845,
+    "calibration_gap": 0.004808015512018454,
+    "precision_at_0.5": 0.5910817273878183,
+    "recall_at_0.5": 0.05353957494521176,
+    "f1_at_0.5": 0.09818559928966154,
+    "accuracy_at_0.5": 0.845622,
+    "best_iteration": 178,
+    "training_seconds": 7.8583194999955595,
+    "holdout_used": false
+  },
+  "model_b_metrics": {
+    "model": "LightGBM_Unified",
+    "train_rows": 2000000,
+    "valid_rows": 500000,
+    "feature_count": 55,
+    "roc_auc": 0.7445089912713436,
+    "log_loss": 0.38133765262213953,
+    "brier_score": 0.11788868572087104,
+    "valid_actual_ctr": 0.156968,
+    "valid_mean_predicted_ctr": 0.15785436568954336,
+    "calibration_gap": 0.0008863656895433669,
+    "precision_at_0.5": 0.6111047114387743,
+    "recall_at_0.5": 0.06759339483206768,
+    "f1_at_0.5": 0.12172316870303447,
+    "accuracy_at_0.5": 0.84689,
+    "best_iteration": 324,
+    "training_seconds": 13.775469583983067,
+    "holdout_used": false
+  },
+  "better_model": "LightGBM_Unified",
+  "old_step32_reference_auc": 0.737077,
+  "old_step32_reference_logloss": 0.384831,
+  "categorical_vocab_summary": {
+    "site_id": {
+      "category_count": 3031,
+      "train_categories_excluding_unk": 3030
+    },
+    "site_domain": {
+      "category_count": 3544,
+      "train_categories_excluding_unk": 3543
+    },
+    "site_category": {
+      "category_count": 22,
+      "train_categories_excluding_unk": 21
+    },
+    "app_id": {
+      "category_count": 3910,
+      "train_categories_excluding_unk": 3909
+    },
+    "app_domain": {
+      "category_count": 244,
+      "train_categories_excluding_unk": 243
+    },
+    "app_category": {
+      "category_count": 28,
+      "train_categories_excluding_unk": 27
+    },
+    "device_model": {
+      "category_count": 5675,
+      "train_categories_excluding_unk": 5674
+    },
+    "banner_pos": {
+      "category_count": 8,
+      "train_categories_excluding_unk": 7
+    },
+    "device_type": {
+      "category_count": 6,
+      "train_categories_excluding_unk": 5
+    },
+    "device_conn_type": {
+      "category_count": 5,
+      "train_categories_excluding_unk": 4
+    },
+    "C1": {
+      "category_count": 8,
+      "train_categories_excluding_unk": 7
+    },
+    "C14": {
+      "category_count": 2036,
+      "train_categories_excluding_unk": 2035
+    },
+    "C15": {
+      "category_count": 9,
+      "train_categories_excluding_unk": 8
+    },
+    "C16": {
+      "category_count": 10,
+      "train_categories_excluding_unk": 9
+    },
+    "C17": {
+      "category_count": 364,
+      "train_categories_excluding_unk": 363
+    },
+    "C18": {
+      "category_count": 5,
+      "train_categories_excluding_unk": 4
+    },
+    "C19": {
+      "category_count": 62,
+      "train_categories_excluding_unk": 61
+    },
+    "C20": {
+      "category_count": 166,
+      "train_categories_excluding_unk": 165
+    },
+    "C21": {
+      "category_count": 53,
+      "train_categories_excluding_unk": 52
+    },
+    "banner_device_cross": {
+      "category_count": 15,
+      "train_categories_excluding_unk": 14
+    },
+    "hour_banner_cross": {
+      "category_count": 165,
+      "train_categories_excluding_unk": 164
+    },
+    "site_device_cross": {
+      "category_count": 28,
+      "train_categories_excluding_unk": 27
+    }
+  },
+  "output_paths": {
+    "model_a": "models/unified_lightgbm_numerical33.txt",
+    "model_b": "models/unified_lightgbm_full.txt",
+    "predictions": "outputs/predictions/unified_lightgbm_valid_predictions.parquet",
+    "metrics_csv": "outputs/unified_lightgbm_metrics.csv",
+    "comparison_txt": "outputs/unified_lightgbm_comparison.txt"
+  },
+  "holdout_used": false,
+  "validation_passed": true
+}

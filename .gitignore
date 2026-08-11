@@ -59,3 +59,9 @@ outputs/feature_tables/historical/
 outputs/feature_tables/target_encoding/
 
 models/*.joblib
+
+# Generated modeling data
+data/modeling/
+
+# Large prediction files
+outputs/predictions/*.parquet

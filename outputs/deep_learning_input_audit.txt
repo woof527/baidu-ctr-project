@@ -1,0 +1,320 @@
+========================================================================
+百度 CTR 项目 — 第 36 步 深度学习输入体系审计
+审计时间（UTC）：2026-08-07T09:02:38.248143+00:00
+模式：仅审计，不训练，不修改数据，不读取 holdout
+
+固定 train 行数：2,000,000
+固定 valid 行数：500,000
+train_id_sha256：f1922d6aeff411cf2a6c8e0b697c894b9446f24e67bbafa0bb29dfbe878e94f1
+valid_id_sha256：46208ac9fdda8a91e5a8e5ca926db27c779c607f6e302255a3017e7bcf866a2f
+
+========================================================================
+固定样本 schema 审计 — train
+目录：data/tuning/lightgbm_train
+文件数：8
+
+列数：36
+列名                                       dtype                角色
+--------------------------------------------------------------------------------
+id                                       large_string         meta
+click                                    int8                 meta
+split_date                               large_string         meta
+app_category_exposure_percentile         float                numerical_exposure_percentile
+app_category_freq                        float                numerical_frequency
+app_category_hist_clicks                 float                numerical_historical_clicks
+app_category_hist_ctr                    float                numerical_historical_ctr
+app_category_hist_impressions            float                numerical_historical_impressions
+app_category_te                          float                numerical_target_encoding
+app_id_exposure_percentile               float                numerical_exposure_percentile
+app_id_freq                              float                numerical_frequency
+app_id_hist_clicks                       float                numerical_historical_clicks
+app_id_hist_ctr                          float                numerical_historical_ctr
+app_id_hist_impressions                  float                numerical_historical_impressions
+app_id_te                                float                numerical_target_encoding
+device_model_exposure_percentile         float                numerical_exposure_percentile
+device_model_freq                        float                numerical_frequency
+device_model_hist_clicks                 float                numerical_historical_clicks
+device_model_hist_ctr                    float                numerical_historical_ctr
+device_model_hist_impressions            float                numerical_historical_impressions
+device_model_te                          float                numerical_target_encoding
+is_weekend                               float                numerical_time_binary
+site_category_exposure_percentile        float                numerical_exposure_percentile
+site_category_freq                       float                numerical_frequency
+site_category_hist_clicks                float                numerical_historical_clicks
+site_category_hist_ctr                   float                numerical_historical_ctr
+site_category_hist_impressions           float                numerical_historical_impressions
+site_category_te                         float                numerical_target_encoding
+site_id_exposure_percentile              float                numerical_exposure_percentile
+site_id_freq                             float                numerical_frequency
+site_id_hist_clicks                      float                numerical_historical_clicks
+site_id_hist_ctr                         float                numerical_historical_ctr
+site_id_hist_impressions                 float                numerical_historical_impressions
+site_id_te                               float                numerical_target_encoding
+hour_sin                                 float                numerical_time_cyclical
+hour_cos                                 float                numerical_time_cyclical
+
+固定样本中存在的原始/embedding 类别列：无
+
+========================================================================
+固定样本 schema 审计 — valid
+目录：data/tuning/lightgbm_valid
+文件数：2
+
+列数：36
+列名                                       dtype                角色
+--------------------------------------------------------------------------------
+id                                       large_string         meta
+click                                    int8                 meta
+split_date                               large_string         meta
+app_category_exposure_percentile         float                numerical_exposure_percentile
+app_category_freq                        float                numerical_frequency
+app_category_hist_clicks                 float                numerical_historical_clicks
+app_category_hist_ctr                    float                numerical_historical_ctr
+app_category_hist_impressions            float                numerical_historical_impressions
+app_category_te                          float                numerical_target_encoding
+app_id_exposure_percentile               float                numerical_exposure_percentile
+app_id_freq                              float                numerical_frequency
+app_id_hist_clicks                       float                numerical_historical_clicks
+app_id_hist_ctr                          float                numerical_historical_ctr
+app_id_hist_impressions                  float                numerical_historical_impressions
+app_id_te                                float                numerical_target_encoding
+device_model_exposure_percentile         float                numerical_exposure_percentile
+device_model_freq                        float                numerical_frequency
+device_model_hist_clicks                 float                numerical_historical_clicks
+device_model_hist_ctr                    float                numerical_historical_ctr
+device_model_hist_impressions            float                numerical_historical_impressions
+device_model_te                          float                numerical_target_encoding
+is_weekend                               float                numerical_time_binary
+site_category_exposure_percentile        float                numerical_exposure_percentile
+site_category_freq                       float                numerical_frequency
+site_category_hist_clicks                float                numerical_historical_clicks
+site_category_hist_ctr                   float                numerical_historical_ctr
+site_category_hist_impressions           float                numerical_historical_impressions
+site_category_te                         float                numerical_target_encoding
+site_id_exposure_percentile              float                numerical_exposure_percentile
+site_id_freq                             float                numerical_frequency
+site_id_hist_clicks                      float                numerical_historical_clicks
+site_id_hist_ctr                         float                numerical_historical_ctr
+site_id_hist_impressions                 float                numerical_historical_impressions
+site_id_te                               float                numerical_target_encoding
+hour_sin                                 float                numerical_time_cyclical
+hour_cos                                 float                numerical_time_cyclical
+
+固定样本中存在的原始/embedding 类别列：无
+
+========================================================================
+当前固定样本中的数值特征（LightGBM 使用的 33 个工程化特征）
+
+[numerical_target_encoding] (5 个)
+  - app_category_te
+  - app_id_te
+  - device_model_te
+  - site_category_te
+  - site_id_te
+
+[numerical_historical_ctr] (5 个)
+  - app_category_hist_ctr
+  - app_id_hist_ctr
+  - device_model_hist_ctr
+  - site_category_hist_ctr
+  - site_id_hist_ctr
+
+[numerical_historical_impressions] (5 个)
+  - app_category_hist_impressions
+  - app_id_hist_impressions
+  - device_model_hist_impressions
+  - site_category_hist_impressions
+  - site_id_hist_impressions
+
+[numerical_historical_clicks] (5 个)
+  - app_category_hist_clicks
+  - app_id_hist_clicks
+  - device_model_hist_clicks
+  - site_category_hist_clicks
+  - site_id_hist_clicks
+
+[numerical_exposure_percentile] (5 个)
+  - app_category_exposure_percentile
+  - app_id_exposure_percentile
+  - device_model_exposure_percentile
+  - site_category_exposure_percentile
+  - site_id_exposure_percentile
+
+[numerical_frequency] (5 个)
+  - app_category_freq
+  - app_id_freq
+  - device_model_freq
+  - site_category_freq
+  - site_id_freq
+
+[numerical_time_cyclical] (2 个)
+  - hour_sin
+  - hour_cos
+
+[numerical_time_binary] (1 个)
+  - is_weekend
+
+========================================================================
+原始类别字段存在性（固定样本）
+  site_id: 不存在
+  site_domain: 不存在
+  site_category: 不存在
+  app_id: 不存在
+  app_domain: 不存在
+  app_category: 不存在
+  device_id: 不存在
+  device_ip: 不存在
+  device_model: 不存在
+  banner_pos: 不存在
+  device_type: 不存在
+  device_conn_type: 不存在
+
+========================================================================
+上游 target_encoded schema — train
+目录：data/features/target_encoded/train
+列数：64
+
+存在的指定原始类别列 (12)：
+  - site_id
+  - site_domain
+  - site_category
+  - app_id
+  - app_domain
+  - app_category
+  - device_id
+  - device_ip
+  - device_model
+  - banner_pos
+  - device_type
+  - device_conn_type
+
+其他 embedding 候选列 (12)：
+  - C1
+  - C14
+  - C15
+  - C16
+  - C17
+  - C18
+  - C19
+  - C20
+  - C21
+  - banner_device_cross
+  - hour_banner_cross
+  - site_device_cross
+
+========================================================================
+上游 target_encoded schema — valid
+目录：data/features/target_encoded/valid
+列数：64
+
+存在的指定原始类别列 (12)：
+  - site_id
+  - site_domain
+  - site_category
+  - app_id
+  - app_domain
+  - app_category
+  - device_id
+  - device_ip
+  - device_model
+  - banner_pos
+  - device_type
+  - device_conn_type
+
+其他 embedding 候选列 (12)：
+  - C1
+  - C14
+  - C15
+  - C16
+  - C17
+  - C18
+  - C19
+  - C20
+  - C21
+  - banner_device_cross
+  - hour_banner_cross
+  - site_device_cross
+
+[train] 行标识符审计
+  固定样本行数：2,000,000（期望 2,000,000）
+  固定样本 unique id：2,000,000
+  固定样本 id 缺失：0
+  固定样本重复 id 行数：0
+  上游扫描行数：32,377,421
+  上游匹配到的 fixed id 数：2,000,000
+  id 匹配率（相对 fixed unique id）：1.000000
+
+[valid] 行标识符审计
+  固定样本行数：500,000（期望 500,000）
+  固定样本 unique id：500,000
+  固定样本 id 缺失：0
+  固定样本重复 id 行数：0
+  上游扫描行数：3,832,608
+  上游匹配到的 fixed id 数：500,000
+  id 匹配率（相对 fixed unique id）：1.000000
+
+========================================================================
+类别字段统计（通过上游 target_encoded 回连 fixed id 集合）
+说明：fixed 样本本身无原始类别列，以下统计基于相同 row id 在上游的值。
+
+列名                          train_u    valid_u  tr_miss%  va_miss%    OOV_cnt  OOV_rate
+------------------------------------------------------------------------------------------
+site_id                       3,030      1,963   0.0000%   0.0000%        533   0.1066%
+site_domain                   3,543      2,075   0.0000%   0.0000%        349   0.0698%
+site_category                    21         19   0.0000%   0.0000%          0   0.0000%
+app_id                        3,909      1,686   0.0000%   0.0000%      1,291   0.2582%
+app_domain                      243        106   0.0000%   0.0000%         57   0.0114%
+app_category                     27         25   0.0000%   0.0000%          0   0.0000%
+device_id                   273,466     76,251   0.0000%   0.0000%     85,329  17.0658%
+device_ip                   929,273    261,090   0.0000%   0.0000%    258,501  51.7002%
+device_model                  5,674      4,263   0.0000%   0.0000%        331   0.0662%
+banner_pos                        7          7   0.0000%   0.0000%          0   0.0000%
+device_type                       5          4   0.0000%   0.0000%          0   0.0000%
+device_conn_type                  4          4   0.0000%   0.0000%          0   0.0000%
+C1                                7          7   0.0000%   0.0000%          0   0.0000%
+C14                           2,035      1,124   0.0000%   0.0000%    117,271  23.4542%
+C15                               8          8   0.0000%   0.0000%          0   0.0000%
+C16                               9          9   0.0000%   0.0000%          0   0.0000%
+C17                             363        212   0.0000%   0.0000%    116,897  23.3794%
+C18                               4          4   0.0000%   0.0000%          0   0.0000%
+C19                              61         46   0.0000%   0.0000%      7,899   1.5798%
+C20                             165        158   0.0000%   0.0000%          0   0.0000%
+C21                              52         36   0.0000%   0.0000%      6,545   1.3090%
+banner_device_cross              14         13   0.0000%   0.0000%          0   0.0000%
+hour_banner_cross               164        138   0.0000%   0.0000%          3   0.0006%
+site_device_cross                27         24   0.0000%   0.0000%          0   0.0000%
+
+========================================================================
+Wide & Deep 公平比较 — 复现相同 2M/500K 行集方案
+
+结论：固定样本 **不包含** 原始类别列，不能直接用于 embedding。
+Step 30 写出列仅为：id, click, split_date + 33 个 float32 工程特征。
+Step 30 抽样时读取上游列不含原始类别（FORBIDDEN_FEATURES 已排除）。
+
+推荐方案（不重新抽样、不修改现有 fixed 样本）：
+1. 以 fixed 样本中的 id 作为稳定 row identifier（SHA256 指纹已存档于
+   outputs/fixed_tuning_sample_metadata.json）。
+2. 从上游 data/features/target_encoded/{train,valid}/ 按 id 左连接
+   补回原始类别列（site_id, app_id, device_model 等）及可选 C 字段。
+3. 严格保持 fixed 样本行顺序与行数不变，仅追加 categorical 列。
+4. 数值特征继续使用 fixed 样本中已预处理的 33 个 float 列，
+   避免重复 log1p / 标准化。
+5. OOV 处理：valid 中未在 train 出现的类别值映射为统一 UNK token。
+6. 禁止读取 holdout；Wide & Deep 仅在相同 2M train / 500K valid 上训练。
+
+若需程序化复现（未来 Step 37+ 脚本，本次不执行）：
+- 读取 outputs/fixed_tuning_sample_metadata.json 中的 train/valid_id_sha256
+- 验证 fixed 样本指纹后，按 id merge 上游 target_encoded
+- 不得重新运行 Step 30 的 sample() 逻辑，除非能证明与现有 id 集合完全一致
+- Step 30 抽样参数：random_state=42，按文件行数比例分配 quota，
+  batch 内 sample(n=remaining, random_state=42)
+
+基于 id 回连上游构建相同行集 Wide & Deep：可行
+
+========================================================================
+审计结论
+FIXED_SAMPLE_HAS_RAW_CATEGORICALS = False
+CAN_BUILD_WIDE_DEEP_ON_EXACT_SAME_ROWS = True
+HOLDOUT_USED = False
+
+本次仅完成审计，未生成新训练数据，未训练神经网络。

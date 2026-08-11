@@ -1,0 +1,23 @@
+{
+  "auc": 0.7427498841718856,
+  "logloss": 0.38384467363357544,
+  "brier": 0.11843234300613403,
+  "average_precision": 0.345902299976899,
+  "actual_ctr": 0.156968,
+  "mean_predicted_ctr": 0.15142351388931274,
+  "calibration_gap": 0.005544486110687252,
+  "precision_0.5": 0.57764475653275,
+  "recall_0.5": 0.06393659854237807,
+  "f1_0.5": 0.11513003177662295,
+  "best_epoch": 4,
+  "train_rows": 2000000,
+  "valid_rows": 500000,
+  "test_mode": false,
+  "holdout_used": false,
+  "lightgbm_unified_auc": 0.744509,
+  "lightgbm_unified_logloss": 0.381338,
+  "lightgbm_unified_brier": 0.117889,
+  "auc_diff_vs_lightgbm": -0.0017591158281143882,
+  "logloss_diff_vs_lightgbm": 0.002506673633575429,
+  "brier_diff_vs_lightgbm": 0.0005433430061340394
+}
