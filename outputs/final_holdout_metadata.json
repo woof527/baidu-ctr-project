@@ -1,0 +1,88 @@
+{
+  "script_name": "scripts/43_final_holdout_evaluation.py",
+  "created_at": "2026-08-12T15:33:17.815131+00:00",
+  "final_train_dates": "2014-10-21~2014-10-29",
+  "holdout_date": "2014-10-30",
+  "final_train_rows": 2500000,
+  "holdout_rows": 4218938,
+  "actual_holdout_ctr": 0.16928075264438586,
+  "models": [
+    "LightGBM_Unified",
+    "DeepFM",
+    "WeightedEnsemble"
+  ],
+  "ensemble_lightgbm_weight": 0.588,
+  "ensemble_deepfm_weight": 0.412,
+  "ensemble_weight_source": "development_validation_step42",
+  "deepfm_epochs": 4,
+  "deepfm_epoch_source": "development_validation_step41",
+  "lightgbm_boosting_rounds": 324,
+  "lightgbm_parameters_source": "frozen development configuration",
+  "lightgbm_iteration_source": "development_validation_step38_model_b_unified",
+  "vocabulary_fit_scope": "final_train_only",
+  "scaler_fit_scope": "final_train_only",
+  "holdout_used_for_training": false,
+  "holdout_used_for_preprocessing_fit": false,
+  "holdout_used_for_model_selection": false,
+  "holdout_used_for_weight_selection": false,
+  "leakage_audit": {
+    "FINAL_TRAIN_MAX_DATE": "2014-10-29",
+    "HOLDOUT_DATE_MIN": "2014-10-30",
+    "HOLDOUT_DATE_MAX": "2014-10-30",
+    "HOLDOUT_LABEL_USED_FOR_FEATURES": false,
+    "HOLDOUT_USED_FOR_VOCAB": false,
+    "HOLDOUT_USED_FOR_SCALER": false,
+    "HOLDOUT_USED_FOR_EARLY_STOPPING": false,
+    "HOLDOUT_USED_FOR_ENSEMBLE_WEIGHT": false
+  },
+  "metrics": {
+    "LightGBM_Unified": {
+      "model": "LightGBM_Unified",
+      "auc": 0.7443922891454566,
+      "logloss": 0.3980045109024583,
+      "brier": 0.12441919070580876,
+      "average_precision": 0.3750640307551083,
+      "actual_ctr": 0.16928075264438586,
+      "mean_predicted_ctr": 0.16468550523274086,
+      "calibration_gap": 0.004595247411644993,
+      "precision_0_5": 0.6254569084558524,
+      "recall_0_5": 0.07547064136043181,
+      "f1_0_5": 0.13468905320342545
+    },
+    "DeepFM": {
+      "model": "DeepFM",
+      "auc": 0.741626856092962,
+      "logloss": 0.4005198308801489,
+      "brier": 0.12497530500951944,
+      "average_precision": 0.37237481289440505,
+      "actual_ctr": 0.16928075264438586,
+      "mean_predicted_ctr": 0.15428892095027655,
+      "calibration_gap": 0.014991831694109309,
+      "precision_0_5": 0.6450823874038814,
+      "recall_0_5": 0.06166889531423931,
+      "f1_0_5": 0.11257572272065025
+    },
+    "WeightedEnsemble": {
+      "model": "WeightedEnsemble",
+      "auc": 0.745909066387183,
+      "logloss": 0.39771407449697926,
+      "brier": 0.12433027687899449,
+      "average_precision": 0.3766232471313896,
+      "actual_ctr": 0.16928075264438586,
+      "mean_predicted_ctr": 0.16040211250836556,
+      "calibration_gap": 0.0088786401360203,
+      "precision_0_5": 0.6350566273828828,
+      "recall_0_5": 0.06964161946834503,
+      "f1_0_5": 0.12551860936979498
+    }
+  },
+  "model_paths": {
+    "lightgbm": "models/final_lightgbm.txt",
+    "deepfm": "models/final_deepfm.pt",
+    "scaler": "models/final_pytorch_numerical_scaler.joblib"
+  },
+  "predictions_path": "outputs/predictions/final_holdout_predictions.parquet",
+  "metrics_csv_path": "outputs/final_holdout_metrics.csv",
+  "one_shot_evaluation": true,
+  "note": "Final holdout evaluation complete. Do not re-tune based on these results."
+}
