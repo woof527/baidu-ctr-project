@@ -1,0 +1,58 @@
+{
+  "script_name": "scripts/44_analyze_ensemble_threshold.py",
+  "created_at": "2026-08-15T07:44:59.684919+00:00",
+  "input_files": {
+    "validation_predictions": "outputs/predictions/lightgbm_deepfm_ensemble_valid_predictions.parquet",
+    "holdout_predictions": "outputs/predictions/final_holdout_predictions.parquet",
+    "step42_metadata": "outputs/lightgbm_deepfm_ensemble_metadata.json",
+    "step43_metadata": "outputs/final_holdout_metadata.json"
+  },
+  "detected_columns": {
+    "validation_label": "click",
+    "validation_probability": "ensemble_pred",
+    "holdout_label": "click",
+    "holdout_probability": "ensemble_pred"
+  },
+  "formal_row_counts": {
+    "validation": 500000,
+    "holdout": 4218938
+  },
+  "actual_row_counts": {
+    "validation": 500000,
+    "holdout": 4218938
+  },
+  "click_checksums": {
+    "validation": "50fb231e8f87641e4b6788695a9c3fe08f71a889cce024f18fcd16413f3bb827",
+    "holdout": "0ed7ef806358b725c62e5ee5414e392cdd9b06ae008cdbbee1d2486005a9a0b3"
+  },
+  "threshold_selection_dataset": "development_validation_2014-10-29",
+  "threshold_selection_metric": "max_f1",
+  "tie_break_rules": [
+    "higher_precision",
+    "higher_threshold"
+  ],
+  "ensemble_weight_consistency": {
+    "step42_lightgbm": 0.588,
+    "step42_deepfm": 0.41200000000000003,
+    "step43_lightgbm": 0.588,
+    "step43_deepfm": 0.412,
+    "consistent": true
+  },
+  "leakage_audit": {
+    "holdout_used_for_threshold_selection": false,
+    "holdout_used_for_fixed_threshold_evaluation": true,
+    "step42_holdout_used": false,
+    "step42_validation_passed": true,
+    "step43_one_shot_evaluation": true,
+    "step43_holdout_used_for_training": false,
+    "step43_holdout_used_for_weight_selection": false
+  },
+  "unique_validation_threshold_count": 284225,
+  "outputs": {
+    "validation_threshold_curve": "outputs/ensemble_threshold/validation_threshold_curve.csv",
+    "fixed_threshold_operating_points": "outputs/ensemble_threshold/fixed_threshold_operating_points.csv",
+    "metrics_json": "outputs/ensemble_threshold/ensemble_threshold_metrics.json",
+    "report_txt": "outputs/ensemble_threshold/ensemble_threshold_report.txt",
+    "plot_png": "outputs/ensemble_threshold/plots/ensemble_threshold_analysis.png"
+  }
+}

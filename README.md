@@ -35,19 +35,36 @@
 - [x] 调优 LightGBM SHAP 解释（第 33 步）
 - [x] 概率校准（第 34 步）
 - [x] 阈值与 Top-K 投放策略分析（第 35 步）
+- [x] 深度学习输入审计与统一建模样本（第 36—37 步）
+- [x] 统一 LightGBM 基线（第 38 步）
+- [x] PyTorch 输入准备、Wide & Deep、DeepFM（第 39—41 步）
+- [x] LightGBM + DeepFM 模型融合（第 42 步）
+- [x] 一次性 final holdout 评估（第 43 步）
+- [x] 当前 Ensemble 最大 F1 阈值与固定阈值 holdout 评价（第 44 步）
 
 ### 尚未完成
 
-- [ ] 一次性 holdout 评估
 - [ ] 分日期 / 分实体 / 冷启动误差分析
 - [ ] 最终项目报告与答辩材料
-- [ ] 深度学习 CTR 模型
-- [ ] 模型融合
 - [ ] A/B 测试及业务落地（需真实收益与成本数据）
 
-> **当前结论：** 已形成**当前最佳开发阶段方案**（Optuna 调优 LightGBM + Isotonic 校准 + Top-K 策略分析），但**不是最终上线模型**，**holdout 尚未使用**。
+> **当前结论：** 已形成**当前最终内部评估方案**（统一 LightGBM + DeepFM 加权 Ensemble，权重 0.588 / 0.412；final holdout 一次性评估已完成）。旧版 Optuna LightGBM + Isotonic + Top-K 方案仍保留为历史开发记录，**不是当前最终模型**。
 
-### 当前最佳开发流程
+### 当前最终模型流程（第 36—44 步）
+
+```
+统一时间切分（train / valid / holdout）
+→ 无泄漏历史特征与 Target Encoding
+→ 统一建模样本（2,000,000 train + 500,000 valid）
+→ 统一 LightGBM_Unified 基线
+→ PyTorch 输入准备
+→ Wide & Deep 与 DeepFM 深度学习实验
+→ LightGBM + DeepFM 加权 Ensemble（0.588 / 0.412）
+→ 一次性 final holdout 评估（2014-10-30）
+→ 当前 Ensemble 最大 F1 阈值选择与固定阈值 holdout 评价
+```
+
+### 历史开发流程（第 30—35 步，旧版固定样本方案）
 
 ```
 固定时间切分
@@ -57,8 +74,7 @@
 → Optuna 调优
 → SHAP 解释
 → Isotonic 概率校准
-→ Top-K 投放策略分析
-→ （待完成）一次性 holdout 评估
+→ Top-K 投放策略分析（threshold=0.21 来自 200K development evaluation）
 ```
 
 ---
@@ -530,7 +546,7 @@ XGBoost 默认更偏向 **Depth-wise** 的树生长方式，并通过正则化�
 |-------|----------|------|
 | train | 2014-10-21 ~ 2014-10-28 | 训练模型、建立历史映射 |
 | valid | 2014-10-29 | 模型开发、调参、校准与策略分析 |
-| holdout | 2014-10-30 | **最终一次性评估（尚未使用）** |
+| holdout | 2014-10-30 | **最终一次性评估（已使用，第 43 步）** |
 
 **输出目录：**
 
@@ -695,21 +711,148 @@ XGBoost 默认更偏向 **Depth-wise** 的树生长方式，并通过正则化�
 
 **输出：** `outputs/strategy/`、`outputs/threshold_strategy_*`
 
+> **说明：** 上述 threshold=0.21 属于**旧版 Optuna LightGBM + Isotonic** 方案（200,000 行 development evaluation），**不能**直接用于当前 LightGBM + DeepFM Ensemble。当前 Ensemble 阈值分析见下文第 44 步。
+
 ---
 
-## 当前最佳开发阶段方案
+## 统一建模与深度学习（第 36—41 步）
+
+在独立于旧版 fixed sample 的统一建模流水线上，完成深度学习对比实验：
+
+| 步骤 | 脚本 | 说明 |
+|------|------|------|
+| 36 | `scripts/36_audit_deep_learning_inputs.py` | 深度学习输入审计 |
+| 37 | `scripts/37_build_unified_modeling_sample.py` | 构建 unified train / valid |
+| 38 | `scripts/38_train_unified_lightgbm_baselines.py` | 统一 LightGBM 基线 |
+| 39 | `scripts/39_prepare_pytorch_inputs.py` | PyTorch 输入与 vocab / scaler |
+| 40 | `scripts/40_train_wide_deep.py` | Wide & Deep |
+| 41 | `scripts/41_train_deepfm.py` | DeepFM |
+
+**Development validation（500,000 行，2014-10-29）主要结果：**
+
+| 模型 | ROC-AUC | LogLoss | Brier |
+|------|--------:|--------:|------:|
+| LightGBM_Unified | 0.744509 | 0.381338 | 0.117889 |
+| Wide & Deep | 0.742750 | 0.383845 | 0.118432 |
+| DeepFM | 0.743686 | 0.382444 | 0.118090 |
+
+**输出：** `data/modeling/unified_{train,valid}/`、`models/unified_lightgbm_full.txt`、`models/deepfm_best.pt` 等
+
+---
+
+## 模型融合（第 42 步）
+
+**脚本：** `scripts/42_ensemble_lightgbm_deepfm.py`
+
+在 unified valid 500K 上搜索 LightGBM 与 DeepFM 线性 blending 权重（主指标 LogLoss）：
+
+| 项目 | 数值 |
+|------|-----:|
+| LightGBM 权重 | **0.588** |
+| DeepFM 权重 | **0.412** |
+| Ensemble AUC | 0.746859 |
+| Ensemble LogLoss | 0.380435 |
+| holdout_used | false |
+
+**输出：** `outputs/predictions/lightgbm_deepfm_ensemble_valid_predictions.parquet`、`outputs/lightgbm_deepfm_ensemble_metadata.json`
+
+---
+
+## 一次性 Final Holdout 评估（第 43 步）
+
+**脚本：** `scripts/43_final_holdout_evaluation.py`
+
+- **Final train：** unified train + unified valid = 2,500,000 行（2014-10-21 ~ 2014-10-29）
+- **Holdout：** 4,218,938 行（2014-10-30）
+- 重新训练 LightGBM 与 DeepFM（冻结超参 / epoch / ensemble 权重）
+- **禁止** holdout 参与训练、预处理 fit、early stopping、权重搜索
+
+| 模型 | Holdout AUC | Holdout LogLoss | Holdout Brier |
+|------|------------:|----------------:|--------------:|
+| LightGBM_Unified | 0.744392 | 0.398005 | 0.124419 |
+| DeepFM | 0.741627 | 0.400520 | 0.124975 |
+| **WeightedEnsemble (0.588/0.412)** | **0.745909** | **0.397714** | **0.124330** |
+
+**输出：** `models/final_lightgbm.txt`、`models/final_deepfm.pt`、`outputs/final_holdout_metrics.csv`、`outputs/predictions/final_holdout_predictions.parquet`
+
+---
+
+## 当前 Ensemble 阈值分析（第 44 步）
+
+**脚本：** `scripts/44_analyze_ensemble_threshold.py`
+
+基于第 42 步 Ensemble 预测，在 **500,000 行 validation** 上精确搜索最大 F1 阈值，冻结后应用到 **4,218,938 行 holdout** 做固定阈值评价：
+
+| 项目 | 数值 |
+|------|-----:|
+| **最大 F1 阈值（冻结）** | **0.1999** |
+| 最大 Youden J 阈值（参考） | 0.1583 |
+| threshold=0.5（诊断对照） | — |
+
+**Validation（最大 F1 阈值）：**
+
+| Precision | Recall | F1 | Coverage | Selected CTR | Lift |
+|----------:|-------:|---:|---------:|-------------:|-----:|
+| 0.2983 | 0.6263 | 0.4041 | 0.3296 | 0.2983 | 1.9003 |
+
+**Holdout（同一冻结阈值，仅评价）：**
+
+| Precision | Recall | F1 | Coverage | Selected CTR | Lift |
+|----------:|-------:|---:|---------:|-------------:|-----:|
+| 0.3180 | 0.6220 | 0.4209 | 0.3311 | 0.3180 | 1.8787 |
+
+**相比 threshold=0.5（validation）：** F1 从 0.1226 提升至 0.4041（+0.2815），Recall 从 0.0682 提升至 0.6263；0.5 阈值 Coverage 仅 1.75%，过于保守。
+
+**要点：**
+
+- 最大 F1 阈值是 **Precision 与 Recall 的统计折中**，**不是**业务利润最优阈值
+- holdout **未参与**阈值选择；`holdout_used_for_threshold_selection=false`
+- 旧版 threshold=0.21（Isotonic + 200K eval）**不能**直接复用于当前 Ensemble
+- 预算固定场景仍建议采用 **Top-K** 作为业务参考方案
+
+**输出：** `outputs/ensemble_threshold/`
+
+---
+
+## 方案对照：旧版 vs 当前最终方案
+
+| 维度 | 旧版（第 30—35 步） | 当前最终方案（第 36—44 步） |
+|------|---------------------|----------------------------|
+| 基础模型 | Optuna 调优 LightGBM | 统一 LightGBM + DeepFM Ensemble |
+| 概率输出 | Isotonic 校准 | 原始 Ensemble 概率 |
+| 融合权重 | — | LightGBM 0.588 / DeepFM 0.412 |
+| 阈值参考 | threshold=0.21（200K eval） | threshold≈0.20（500K Ensemble valid） |
+| 预算固定场景 | Top-K | Top-K（仍适用） |
+| Holdout | 未使用 | 已一次性评估（第 43 步） |
+| 分类折中参考 | 最大 F1（旧口径） | 最大 F1（当前 Ensemble，仅统计折中） |
+
+---
+
+## 当前最终方案
+
+| 组件 | 选择 |
+|------|------|
+| 基础模型 | 统一 LightGBM + DeepFM 加权 Ensemble |
+| 融合权重 | LightGBM **0.588**，DeepFM **0.412** |
+| 概率输出 | Ensemble 原始概率 |
+| 预算固定场景 | Top-K 按概率排序投放 |
+| 分类折中参考 | threshold≈**0.1999**（最大 F1，Precision-Recall 统计折中，非利润最优） |
+| 最终无偏评价 | **已完成** final holdout（2014-10-30） |
+
+**holdout_used：** 第 43 步 holdout 仅用于一次性模型评价；第 44 步 holdout 仅用于冻结阈值评价，未参与阈值选择。
+
+详细结果见 [`docs/model_results_summary.md`](docs/model_results_summary.md)、[`docs/week5_report.md`](docs/week5_report.md)。
+
+---
+
+## 历史开发阶段方案（第 30—35 步，保留记录）
 
 | 组件 | 选择 |
 |------|------|
 | 基础模型 | Optuna 调优 LightGBM（trial 8，best_iteration=208） |
 | 概率输出 | Isotonic 校准 |
 | 预算固定场景 | Top-K 按概率排序投放 |
-| 分类折中参考 | threshold=0.21（最大 F1，仅作参考） |
-| 最终无偏评价 | **等待一次性 holdout** |
-
-**holdout_used：** false（全部步骤）
-
-详细结果见 [`docs/model_results_summary.md`](docs/model_results_summary.md)、[`docs/week5_report.md`](docs/week5_report.md)。
+| 分类折中参考 | threshold=0.21（最大 F1，200K development evaluation，仅作参考） |
 
 ---
 
@@ -758,11 +901,26 @@ python scripts/34_calibrate_tuned_lightgbm.py
 python scripts/35_analyze_threshold_lift_strategy.py
 ```
 
+### 统一建模与最终评估流程（第 36—44 步）
+
+```bash
+python scripts/36_audit_deep_learning_inputs.py
+python scripts/37_build_unified_modeling_sample.py
+python scripts/38_train_unified_lightgbm_baselines.py
+python scripts/39_prepare_pytorch_inputs.py
+python scripts/40_train_wide_deep.py
+python scripts/41_train_deepfm.py
+python scripts/42_ensemble_lightgbm_deepfm.py
+python scripts/43_final_holdout_evaluation.py
+python scripts/44_analyze_ensemble_threshold.py
+```
+
 **运行说明：**
 
 - 各脚本需确认 `TEST_MODE=False` 后再跑正式结果
 - 运行模型前必须先通过第 25 步高级特征验收
-- **holdout 在当前阶段禁止使用**
+- 第 43 步为**一次性** final holdout 评估，完成后不得根据 holdout 重新调参
+- 第 44 步阈值仅在 validation 选择，holdout 仅做冻结阈值评价
 
 ---
 
@@ -804,6 +962,17 @@ python scripts/35_analyze_threshold_lift_strategy.py
 - `docs/week5_report.md`
 - `docs/model_results_summary.md`
 
+### 统一建模与阈值分析成果
+
+- `outputs/unified_lightgbm_metadata.json`
+- `outputs/deepfm_metadata.json`
+- `outputs/lightgbm_deepfm_ensemble_metadata.json`
+- `outputs/final_holdout_metrics.csv`
+- `outputs/final_holdout_metadata.json`
+- `outputs/ensemble_threshold/ensemble_threshold_metrics.json`
+- `outputs/ensemble_threshold/ensemble_threshold_report.txt`
+- `outputs/ensemble_threshold/plots/ensemble_threshold_analysis.png`
+
 ### 阶段总结
 
 - `reports/week4_model_baseline_summary.md`
@@ -814,24 +983,22 @@ python scripts/35_analyze_threshold_lift_strategy.py
 
 - 数据时间跨度约 **10 天**（2014-10-21 ~ 2014-10-30），泛化能力有限
 - LightGBM 超参数已使用**完整 fixed valid** 选择，存在开发集信息复用
-- 概率校准与 Top-K 策略基于 **200,000 行 development evaluation**，不是 holdout
+- 概率校准与 Top-K 策略（第 35 步）基于 **200,000 行 development evaluation**，不是 holdout
+- 当前 Ensemble 阈值（第 44 步）基于 **500,000 行 validation**；holdout 仅做冻结阈值评价
 - 最终 Isotonic 校准器在完整 valid 上重拟合，**不能在同一 valid 上自我评价**
 - 逻辑回归与早期树模型基线**训练口径不同**（全量 vs 200 万抽样）
 - SHAP 为模型解释，**不代表因果关系**；高基数历史特征可能随时间漂移
 - Top-K / Lift 分析默认**每条曝光成本相同**，缺少 CPC、CPA、点击价值与预算约束
-- **Lift 不能描述为利润提升**
-- **holdout 尚未使用**；当前结果**不能代表**最终上线效果
+- **Lift 不能描述为利润提升**；最大 F1 阈值**不是**业务利润最优阈值
+- 第 43 步 holdout 为一次性内部评估；**不能**根据 holdout 重新调参或调阈值
 
 ---
 
 ## 下一阶段计划
 
-1. 冻结当前数据处理、特征与模型方案
-2. 编写一次性 holdout 评估脚本
-3. 对 Optuna LightGBM + Isotonic 方案进行 **holdout 验证**
-4. 比较 holdout 上的 AUC、LogLoss、Brier、ECE、Lift
-5. 分日期、分实体及冷启动误差分析
-6. 整理最终项目报告与答辩材料
+1. 分日期、分实体及冷启动误差分析
+2. 整理最终项目报告与答辩材料
+3. 如有真实 CPC / 预算数据，再评估业务投放策略（当前不具备）
 
 ---
 
@@ -862,7 +1029,16 @@ python scripts/35_analyze_threshold_lift_strategy.py
 | `32_tune_lightgbm_optuna.py` | LightGBM Optuna 调优 |
 | `33_explain_tuned_lightgbm_shap.py` | 调优 LightGBM SHAP 解释 |
 | `34_calibrate_tuned_lightgbm.py` | 概率校准 |
-| `35_analyze_threshold_lift_strategy.py` | 阈值与 Top-K 策略分析 |
+| `35_analyze_threshold_lift_strategy.py` | 阈值与 Top-K 策略分析（旧版 Isotonic 方案） |
+| `36_audit_deep_learning_inputs.py` | 深度学习输入审计 |
+| `37_build_unified_modeling_sample.py` | 构建统一建模样本 |
+| `38_train_unified_lightgbm_baselines.py` | 统一 LightGBM 基线 |
+| `39_prepare_pytorch_inputs.py` | PyTorch 输入准备 |
+| `40_train_wide_deep.py` | Wide & Deep 训练 |
+| `41_train_deepfm.py` | DeepFM 训练 |
+| `42_ensemble_lightgbm_deepfm.py` | LightGBM + DeepFM 融合 |
+| `43_final_holdout_evaluation.py` | 一次性 final holdout 评估 |
+| `44_analyze_ensemble_threshold.py` | 当前 Ensemble 阈值分析与固定阈值 holdout 评价 |
 
 ---
 

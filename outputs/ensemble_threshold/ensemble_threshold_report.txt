@@ -1,0 +1,43 @@
+百度 CTR 项目 — 第 44 步 Ensemble 阈值分析报告
+========================================================================
+
+一、阈值选择原则
+- 最佳阈值仅在 development validation（500,000 行，2014-10-29）上选择。
+- holdout 未参与阈值选择、微调或候选比较。
+- 主选择指标为最大 F1；F1 并列时优先 Precision 更高，再优先更高阈值。
+- 当前 Ensemble 权重：LightGBM=0.588，DeepFM=0.412。
+
+二、当前 Ensemble 最大 F1 阈值（development validation）
+- 冻结阈值：0.199884841561
+- Precision：0.298291
+- Recall：0.626306
+- F1：0.404114
+- Coverage：0.329578
+- Selected CTR：0.298291
+- Lift：1.900327
+
+三、为什么 threshold=0.5 不合适
+- 0.5 阈值下 validation F1=0.122636，显著低于最大 F1=0.404114。
+- 0.5 阈值下 Coverage=0.017500，Recall=0.068154，在低 CTR 场景下过于保守，会漏掉大量潜在点击。
+- 验证集实际 CTR 仅约 0.1570，0.5 远高于多数样本预测概率分布。
+
+四、同一冻结阈值在 holdout 上的固定评价
+- holdout 行数：4,218,938（2014-10-30）
+- 使用冻结阈值 0.199884841561：
+  Precision=0.318034, Recall=0.622020, F1=0.420877, Coverage=0.331084, Selected CTR=0.318034, Lift=1.878739
+
+五、参考阈值
+- 最大 Youden J 阈值（仅参考）：0.158325557142
+  validation Youden J=0.368359
+- threshold=0.5 对照：validation F1=0.122636，holdout F1=0.125519
+
+六、重要限制
+- 最大 F1 阈值只是 Precision 与 Recall 的统计折中，不是利润最优阈值。
+- 当前没有 CPC、点击价值、预算和库存数据，不能声称找到业务收益最优阈值。
+- 预算固定场景仍建议采用 Top-K 作为业务参考方案。
+- 不得根据 holdout 结果重新调整阈值。
+
+七、与旧版阈值分析的区别
+- 旧版 threshold=0.21 来自 Optuna LightGBM + Isotonic + 200,000 行 development evaluation。
+- 本报告阈值来自当前 LightGBM(0.588)+DeepFM(0.412) Ensemble 的 500,000 行 validation。
+
